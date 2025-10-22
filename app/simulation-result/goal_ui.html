@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>恋愛シミュレーション - 結果画面</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+        
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+        }
+        
+        .pentagon-chart {
+            width: 400px;
+            height: 400px;
+        }
+        
+        .result-overlay {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+        }
+        
+        .share-button {
+            background: linear-gradient(135deg, #ff6b9d, #ff8fab);
+            transition: all 0.3s ease;
+        }
+        
+        .share-button:hover {
+            background: linear-gradient(135deg, #ff5a8a, #ff7d98);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(255, 107, 157, 0.4);
+        }
+        
+        .next-button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            transition: all 0.3s ease;
+        }
+        
+        .next-button:hover {
+            background: linear-gradient(135deg, #5a6fd8, #6a4190);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .fade-out {
+            opacity: 0;
+            transform: scale(0.95);
+            transition: all 0.8s ease;
+        }
+        
+        .pentagon-path {
+            fill: rgba(255, 107, 157, 0.3);
+            stroke: #ff6b9d;
+            stroke-width: 2;
+            filter: drop-shadow(0 0 10px rgba(255, 107, 157, 0.5));
+            transform-origin: center;
+            animation: pentagonExpand 2s ease-out 0.8s both;
+        }
+
+        @keyframes pentagonExpand {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            50% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes pentagonPulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 0.9;
+            }
+            50% {
+                transform: scale(1.03);
+                opacity: 1;
+            }
+        }
+        
+        .pentagon-grid {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.3);
+            stroke-width: 1;
+        }
+        
+        .pentagon-label {
+            fill: white;
+            font-size: 14px;
+            font-weight: 500;
+            text-anchor: middle;
+        }
+
+        .result-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes textPulse {
+            0%, 100% { 
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% { 
+                transform: scale(1.1);
+                opacity: 0.8;
+            }
+        }
+
+        .text-pulse {
+            animation: textPulse 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- 背景動画のプレースホルダー（実際の動画URLに置き換えてください） -->
+    <div class="video-background bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600">
+        <!-- 動画の代わりにアニメーション背景を使用 -->
+        <div class="absolute inset-0 opacity-30">
+            <div class="absolute top-10 left-10 w-20 h-20 bg-white rounded-full animate-pulse"></div>
+            <div class="absolute top-32 right-20 w-16 h-16 bg-pink-300 rounded-full animate-bounce"></div>
+            <div class="absolute bottom-20 left-1/4 w-12 h-12 bg-purple-300 rounded-full animate-ping"></div>
+            <div class="absolute bottom-40 right-1/3 w-24 h-24 bg-indigo-300 rounded-full animate-pulse"></div>
+        </div>
+    </div>
+
+    <!-- 結果画面（第1部） -->
+    <div id="resultScreen" class="result-overlay min-h-screen flex items-center justify-center p-4 relative overflow-y-auto">
+        <!-- 次に進むボタン（右下に配置） -->
+        <button onclick="showFullBackground()" class="fixed bottom-6 right-6 bg-white bg-opacity-20 hover:bg-opacity-30 text-white text-sm py-2 px-4 rounded-full transition-all duration-300 backdrop-blur-sm border border-white border-opacity-30">
+            次に進む →
+        </button>
+        
+        <div class="text-center max-w-2xl mx-auto py-8">
+            <!-- タイトル -->
+            <h1 class="text-4xl md:text-5xl font-bold text-white mb-8 animate-fade-in">
+                あなたの恋愛タイプ
+            </h1>
+            
+            <!-- 精密な5軸レーダーチャート -->
+            <div class="flex justify-center mb-8">
+                <div class="pentagon-chart" style="width: 400px; height: 400px;">
+                    <svg id="radar" viewBox="0 0 900 900" width="100%" height="100%" role="img" aria-label="Radar chart">
+                        <defs>
+                            <!-- エレガントなグロー効果 -->
+                            <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+                                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                                <feMerge> 
+                                    <feMergeNode in="coloredBlur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                            
+                            <!-- データエリアのグラデーション -->
+                            <radialGradient id="dataGradient" cx="50%" cy="50%" r="60%">
+                                <stop offset="0%" style="stop-color:#ff6b9d;stop-opacity:0.8" />
+                                <stop offset="100%" style="stop-color:#ff6b9d;stop-opacity:0.2" />
+                            </radialGradient>
+                        </defs>
+                    </svg>
+                </div>
+            </div>
+            
+            <!-- 恋愛偏差値 -->
+            <div class="relative bg-white bg-opacity-10 rounded-3xl p-8 mb-8 backdrop-blur-md border border-white border-opacity-20 overflow-hidden">
+                <!-- 背景の装飾 -->
+                <div class="absolute inset-0 bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-500 opacity-20"></div>
+                
+                <!-- コンテンツ -->
+                <div class="relative z-10 text-center">
+
+                    <h3 class="text-white text-xl font-bold mb-3">恋愛偏差値</h3>
+                    <div class="relative">
+                        <div class="text-white text-5xl font-bold mb-2 drop-shadow-lg">82.2</div>
+                        <div class="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full animate-pulse"></div>
+                    </div>
+                    <p class="text-white text-sm font-medium">
+                        平均より高い恋愛力を持っています！
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 結果テキスト -->
+            <div class="bg-white bg-opacity-20 rounded-2xl p-6 mb-8 backdrop-blur-sm">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-4 bg-gradient-to-r from-pink-300 to-purple-300 bg-clip-text text-transparent drop-shadow-lg">情熱的なロマンチストタイプ</h2>
+                <p class="text-white text-lg leading-relaxed mb-6">
+                    あなたは恋愛に対して情熱的で、相手を大切にする優しい心を持っています。
+                    新しい体験を求める冒険心と、深く考える知性のバランスが取れた魅力的な人です。
+                </p>
+                
+                <!-- 関係発展のアドバイス -->
+                <div class="border-t border-white border-opacity-30 pt-6">
+                    <h3 class="text-xl font-bold text-white mb-4">恋愛偏差値を上げるために</h3>
+                    <div class="grid md:grid-cols-2 gap-4 text-left">
+                        <div class="bg-white bg-opacity-10 rounded-lg p-4">
+                            <h4 class="font-bold text-pink-200 mb-2">🌟 あなたの強みを活かそう</h4>
+                            <p class="text-white text-sm">
+                                情熱的な性格を活かして、積極的にコミュニケーションを取りましょう。あなたの優しさは彼にとって大きな魅力です。
+                            </p>
+                        </div>
+                        <div class="bg-white bg-opacity-10 rounded-lg p-4">
+                            <h4 class="font-bold text-purple-200 mb-2">🎯 改善ポイント</h4>
+                            <p class="text-white text-sm">
+                                安定性を少し高めることで、彼により安心感を与えられます。約束を守り、一貫した行動を心がけて。
+                            </p>
+                        </div>
+                        <div class="bg-gradient-to-br from-blue-500 to-purple-600 bg-opacity-20 rounded-lg p-4 border border-blue-300 border-opacity-40 shadow-lg">
+                            <h4 class="font-bold text-blue-200 mb-2">💖 あなたと相性のいいタイプ</h4>
+                            <p class="text-white text-sm mb-4">
+                                知的で落ち着いた男性や、あなたの情熱を理解してくれる優しい人。お互いを高め合える関係を築ける相手が理想的です。
+                            </p>
+                            <div class="bg-blue-500 bg-opacity-30 rounded-lg p-3 border border-blue-300 border-opacity-50">
+                                <p class="text-blue-100 text-lg font-bold text-center">
+                                    知的な安定型タイプ
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            
+            <!-- シェアボタン -->
+            <div class="flex justify-center">
+                <button onclick="showShareModal()" class="share-button text-white font-bold py-4 px-8 rounded-full text-lg">
+                    📱 結果をシェア
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 全画面背景表示（第2部） -->
+    <div id="fullBackground" class="hidden min-h-screen relative">
+        <!-- 画面下部のボタン -->
+        <div class="absolute bottom-6 left-0 right-0 flex justify-between px-6">
+            <button onclick="showResult()" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white text-sm py-2 px-4 rounded-full transition-all duration-300 backdrop-blur-sm border border-white border-opacity-30">
+                ← 結果に戻る
+            </button>
+            <button onclick="showChoiceScreen()" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white text-sm py-2 px-4 rounded-full transition-all duration-300 backdrop-blur-sm border border-white border-opacity-30">
+                次に進む →
+            </button>
+        </div>
+    </div>
+
+    <!-- 選択画面（第3部） -->
+    <div id="choiceScreen" class="hidden result-overlay min-h-screen flex items-center justify-center p-4 relative overflow-y-auto">
+        <div class="text-center max-w-4xl mx-auto py-8">
+            <!-- タイトル -->
+            <h1 class="text-lg md:text-2xl font-bold text-white mb-12 animate-fade-in">
+                あなたの恋愛の続きを選んでください
+            </h1>
+            
+            <!-- 選択肢 -->
+            <div class="grid md:grid-cols-2 gap-8 mb-8">
+                <!-- 同じ恋愛を続ける -->
+                <div class="bg-white bg-opacity-20 rounded-3xl p-8 backdrop-blur-sm border border-white border-opacity-30 hover:bg-opacity-30 transition-all duration-300 cursor-pointer transform hover:scale-105" onclick="showContinueModal()">
+                    <div class="text-6xl mb-6">💕</div>
+                    <h3 class="text-2xl font-bold text-white mb-4">この恋愛を発展させる</h3>
+                    <p class="text-white opacity-90 text-lg leading-relaxed">
+                        新しい目標を再設定して、相手との関係をさらに深めていきましょう。
+                    </p>
+                </div>
+                
+                <!-- 新しい恋愛を始める -->
+                <div class="bg-white bg-opacity-20 rounded-3xl p-8 backdrop-blur-sm border border-white border-opacity-30 hover:bg-opacity-30 transition-all duration-300 cursor-pointer transform hover:scale-105" onclick="showNewRomanceModal()">
+                    <div class="text-6xl mb-6">✨</div>
+                    <h3 class="text-2xl font-bold text-white mb-4">新しい恋愛を始める</h3>
+                    <p class="text-white opacity-90 text-lg leading-relaxed">
+                        プロフィールを再設定して、新しい恋愛を体験しましょう。
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 戻るボタン -->
+            <button onclick="showFullBackground()" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white text-sm py-2 px-4 rounded-full transition-all duration-300 backdrop-blur-sm border border-white border-opacity-30">
+                ← 前に戻る
+            </button>
+        </div>
+    </div>
+
+    <!-- シェアモーダル -->
+    <div id="shareModal" class="hidden fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white bg-opacity-20 backdrop-blur-md rounded-3xl p-8 max-w-md w-full border border-white border-opacity-30">
+            <div class="text-center">
+                <div class="text-4xl mb-4">✨</div>
+                <h3 class="text-2xl font-bold text-white mb-4">診断結果をシェア</h3>
+                <p class="text-white opacity-90 mb-6 leading-relaxed">
+                    あなたの恋愛タイプ「情熱的なロマンチストタイプ」を<br>
+                    友達にもシェアしてみませんか？
+                </p>
+                
+                <div class="space-y-3 mb-6">
+                    <button onclick="shareToSNS('twitter')" class="w-full bg-gradient-to-r from-blue-500 to-blue-600 bg-opacity-80 hover:bg-opacity-100 text-white py-3 px-6 rounded-full transition-all duration-300 transform hover:scale-105">
+                        <span class="flex items-center justify-center gap-2">
+                            🐦 <span>Twitterでシェア</span>
+                        </span>
+                    </button>
+                    <button onclick="shareToSNS('line')" class="w-full bg-gradient-to-r from-green-500 to-green-600 bg-opacity-80 hover:bg-opacity-100 text-white py-3 px-6 rounded-full transition-all duration-300 transform hover:scale-105">
+                        <span class="flex items-center justify-center gap-2">
+                            💬 <span>LINEでシェア</span>
+                        </span>
+                    </button>
+                    <button onclick="copyToClipboard()" class="w-full bg-gradient-to-r from-purple-500 to-purple-600 bg-opacity-80 hover:bg-opacity-100 text-white py-3 px-6 rounded-full transition-all duration-300 transform hover:scale-105">
+                        <span class="flex items-center justify-center gap-2">
+                            📋 <span>リンクをコピー</span>
+                        </span>
+                    </button>
+                </div>
+                
+                <button onclick="closeModal('shareModal')" class="text-white opacity-70 hover:opacity-100 transition-opacity text-sm">
+                    閉じる
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 関係継続モーダル -->
+    <div id="continueModal" class="hidden fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white bg-opacity-20 backdrop-blur-md rounded-3xl p-8 max-w-lg w-full border border-white border-opacity-30">
+            <div class="text-center">
+                <div class="text-4xl mb-4">💕</div>
+                <h3 class="text-2xl font-bold text-white mb-4">関係を発展させる</h3>
+                <p class="text-white opacity-90 mb-6 leading-relaxed">
+                    素晴らしい選択です！<br>
+                    学んだ恋愛TIPsを生かして、<br>
+                    ストーリーを進めていきましょう。
+                </p>
+                
+                <div class="flex gap-4 justify-center">
+                    <button onclick="continueCurrentRomance()" class="share-button text-white font-bold py-3 px-6 rounded-full">
+                        続ける
+                    </button>
+                    <button onclick="closeModal('continueModal')" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white py-3 px-6 rounded-full transition-all duration-300">
+                        戻る
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新しい恋愛モーダル -->
+    <div id="newRomanceModal" class="hidden fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white bg-opacity-20 backdrop-blur-md rounded-3xl p-8 max-w-lg w-full border border-white border-opacity-30">
+            <div class="text-center">
+                <div class="text-4xl mb-4">✨</div>
+                <h3 class="text-2xl font-bold text-white mb-4">新しい出会いを探す</h3>
+                <p class="text-white opacity-90 mb-6 leading-relaxed">
+                    新しい冒険の始まりですね！<br>
+                    違うタイプの相手との恋愛を体験して、<br>
+                    新たな恋愛TIPsを学ぼう！
+                </p>
+                
+                <div class="flex gap-4 justify-center">
+                    <button onclick="startNewRomance()" class="next-button text-white font-bold py-3 px-6 rounded-full">
+                        新しく始める
+                    </button>
+                    <button onclick="closeModal('newRomanceModal')" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white py-3 px-6 rounded-full transition-all duration-300">
+                        戻る
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ローディング画面 -->
+    <div id="loadingScreen" class="hidden fixed inset-0 bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600 flex items-center justify-center z-50">
+        <div class="text-center">
+            <!-- ローディングアニメーション -->
+            <div class="relative mb-8">
+                <div class="w-24 h-24 border-4 border-white border-opacity-30 rounded-full animate-spin border-t-white mx-auto"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="text-2xl">💕</div>
+                </div>
+            </div>
+            
+            <!-- ローディングテキスト -->
+            <h2 class="text-3xl font-bold text-white mb-4">恋愛ストーリーを準備中...</h2>
+            <p class="text-white opacity-90 text-lg mb-8">
+                あなたの選択に基づいて<br>
+                素敵な続きを用意しています
+            </p>
+            
+            <!-- プログレスバー -->
+            <div class="w-64 h-2 bg-white bg-opacity-30 rounded-full mx-auto overflow-hidden">
+                <div id="progressBar" class="h-full bg-white rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
+            </div>
+            
+            <!-- ローディングメッセージ -->
+            <p id="loadingMessage" class="text-white opacity-80 text-sm mt-4">
+                恋愛データを分析中...
+            </p>
+        </div>
+    </div>
+
+
+
+    <!-- 恋愛発展準備画面 -->
+    <div id="continueRomancePrep" class="hidden fixed inset-0 bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600 flex items-center justify-center z-50">
+        <div class="text-center px-4">
+            <h1 id="continueRomanceText" class="text-2xl md:text-4xl font-bold text-white text-pulse">
+                恋愛を発展させる準備をしています...
+            </h1>
+        </div>
+    </div>
+
+    <!-- 恋愛速度設定画面 -->
+    <div id="romanceSettings" class="hidden fixed inset-0 bg-gradient-to-br from-pink-400 via-purple-500 to-purple-600 flex items-center justify-center z-50 p-4">
+        <div class="text-center max-w-lg w-full">
+            <!-- タイトル -->
+            <h1 class="text-4xl md:text-5xl font-bold text-white mb-12">
+                シミュレーション追加設定
+            </h1>
+            
+            <!-- 設定フォーム -->
+            <div class="bg-white bg-opacity-20 backdrop-blur-md rounded-3xl p-8 border border-white border-opacity-30 mb-8">
+                <!-- 目標設定 -->
+                <div class="mb-8">
+                    <label class="block text-white text-xl font-bold mb-4">目標</label>
+                    <select id="goalSelect" class="w-full bg-white bg-opacity-90 text-gray-800 text-lg py-4 px-6 rounded-2xl border-2 border-transparent focus:outline-none focus:ring-4 focus:ring-pink-300 font-medium transition-all duration-300">
+                        <option value="" disabled selected>選択してください</option>
+                        <option value="友達になる">友達になる</option>
+                        <option value="デートする">デートする</option>
+                        <option value="告白する">告白する</option>
+                        <option value="恋人になる">恋人になる</option>
+                        <option value="関係を深める">関係を深める</option>
+                        <option value="結婚を考える">結婚を考える</option>
+                    </select>
+                </div>
+                
+                <!-- 質問数設定 -->
+                <div class="mb-6">
+                    <label class="block text-white text-xl font-bold mb-4">質問数</label>
+                    <select id="questionSelect" class="w-full bg-white bg-opacity-90 text-gray-800 text-lg py-4 px-6 rounded-2xl border-2 border-transparent focus:outline-none focus:ring-4 focus:ring-pink-300 font-medium transition-all duration-300">
+                        <option value="" disabled selected>選択してください</option>
+                        <option value="5問（短時間）">5問（短時間）</option>
+                        <option value="10問（標準）">10問（標準）</option>
+                        <option value="15問（詳細）">15問（詳細）</option>
+                        <option value="20問（完全版）">20問（完全版）</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- ボタン -->
+            <div class="flex gap-6 justify-center">
+                <button onclick="resetSettings()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-4 px-8 rounded-full text-lg transition-all duration-300 transform hover:scale-105">
+                    リセット
+                </button>
+                <button onclick="startSimulation()" class="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white font-bold py-4 px-8 rounded-full text-lg transition-all duration-300 transform hover:scale-105 shadow-lg">
+                    シミュレーション開始 🚀
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 画面切り替え機能
+
+        function showResult() {
+            const resultScreen = document.getElementById('resultScreen');
+            const fullBackground = document.getElementById('fullBackground');
+            
+            fullBackground.style.opacity = '0';
+            
+            setTimeout(() => {
+                fullBackground.classList.add('hidden');
+                resultScreen.classList.remove('hidden', 'fade-out');
+                resultScreen.style.opacity = '0';
+                
+                setTimeout(() => {
+                    resultScreen.style.transition = 'opacity 0.8s ease';
+                    resultScreen.style.opacity = '1';
+                }, 50);
+            }, 300);
+        }
+
+        function showChoiceScreen() {
+            const fullBackground = document.getElementById('fullBackground');
+            const choiceScreen = document.getElementById('choiceScreen');
+            
+            // フェードアウトアニメーション
+            fullBackground.style.opacity = '0';
+            
+            setTimeout(() => {
+                fullBackground.classList.add('hidden');
+                choiceScreen.classList.remove('hidden');
+                choiceScreen.style.opacity = '0';
+                
+                // フェードイン
+                setTimeout(() => {
+                    choiceScreen.style.transition = 'opacity 0.8s ease';
+                    choiceScreen.style.opacity = '1';
+                }, 50);
+            }, 300);
+        }
+
+        // モーダル表示機能
+        function showShareModal() {
+            document.getElementById('shareModal').classList.remove('hidden');
+        }
+
+        function showContinueModal() {
+            document.getElementById('continueModal').classList.remove('hidden');
+        }
+
+        function showNewRomanceModal() {
+            document.getElementById('newRomanceModal').classList.remove('hidden');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        // シェア機能
+        function shareToSNS(platform) {
+            const text = '私の恋愛タイプは「情熱的なロマンチストタイプ」でした！✨';
+            const url = window.location.href;
+            
+            switch(platform) {
+                case 'twitter':
+                    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+                    break;
+                case 'line':
+                    window.open(`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, '_blank');
+                    break;
+            }
+            closeModal('shareModal');
+        }
+
+        function copyToClipboard() {
+            const text = '私の恋愛タイプは「情熱的なロマンチストタイプ」でした！✨ ' + window.location.href;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('リンクがクリップボードにコピーされました！');
+                closeModal('shareModal');
+            });
+        }
+
+        function continueCurrentRomance() {
+            closeModal('continueModal');
+            showRomanceSettings();
+        }
+
+        function showLoadingScreen() {
+            document.getElementById('loadingScreen').classList.remove('hidden');
+            
+            const progressBar = document.getElementById('progressBar');
+            const loadingMessage = document.getElementById('loadingMessage');
+            
+            const messages = [
+                '恋愛データを分析中...',
+                'あなたの性格を解析中...',
+                '最適なシナリオを選択中...',
+                '彼の反応を予測中...',
+                'ストーリーを生成中...',
+                '準備完了！'
+            ];
+            
+            let progress = 0;
+            let messageIndex = 0;
+            
+            const interval = setInterval(() => {
+                progress += Math.random() * 20 + 10;
+                if (progress > 100) progress = 100;
+                
+                progressBar.style.width = progress + '%';
+                
+                if (messageIndex < messages.length - 1 && progress > (messageIndex + 1) * 16) {
+                    messageIndex++;
+                    loadingMessage.textContent = messages[messageIndex];
+                }
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        document.getElementById('loadingScreen').classList.add('hidden');
+                        alert('恋愛ストーリーの続きが準備できました！\n彼との素敵な時間をお楽しみください。');
+                    }, 1000);
+                }
+            }, 300);
+        }
+
+        function startNewRomance() {
+            closeModal('newRomanceModal');
+            showNewRomancePrep();
+        }
+
+        function showNewRomancePrep() {
+            alert('新しい恋愛の準備が完了しました！\n新しいプロフィールで素敵な出会いを楽しんでください。');
+        }
+
+        function showContinueRomancePrep() {
+            document.getElementById('continueRomancePrep').classList.remove('hidden');
+            
+            setTimeout(() => {
+                document.getElementById('continueRomancePrep').classList.add('hidden');
+                alert('恋愛の発展準備が完了しました！\n学んだTIPsを活かして素敵な関係を築いてください。');
+            }, 3000);
+        }
+
+        function showRomanceSettings() {
+            document.getElementById('romanceSettings').classList.remove('hidden');
+        }
+
+        function resetSettings() {
+            document.getElementById('goalSelect').value = '';
+            document.getElementById('questionSelect').value = '';
+        }
+
+        function startSimulation() {
+            const goalSelect = document.getElementById('goalSelect');
+            const questionSelect = document.getElementById('questionSelect');
+            const goal = goalSelect.value;
+            const questions = questionSelect.value;
+            
+            // エラー状態をリセット
+            goalSelect.classList.remove('border-red-500', 'ring-red-300');
+            questionSelect.classList.remove('border-red-500', 'ring-red-300');
+            
+            let hasError = false;
+            
+            if (!goal) {
+                goalSelect.classList.add('border-red-500', 'ring-red-300');
+                hasError = true;
+            }
+            
+            if (!questions) {
+                questionSelect.classList.add('border-red-500', 'ring-red-300');
+                hasError = true;
+            }
+            
+            if (hasError) {
+                alert('目標と質問数を選択してください。');
+                return;
+            }
+            
+            document.getElementById('romanceSettings').classList.add('hidden');
+            showContinueRomancePrep();
+        }
+
+        function showFullBackground() {
+            const resultScreen = document.getElementById('resultScreen');
+            const fullBackground = document.getElementById('fullBackground');
+            const choiceScreen = document.getElementById('choiceScreen');
+            
+            // 現在表示されている画面を特定
+            if (!resultScreen.classList.contains('hidden')) {
+                // 結果画面から全画面背景へ
+                resultScreen.classList.add('fade-out');
+                
+                setTimeout(() => {
+                    resultScreen.classList.add('hidden');
+                    resultScreen.classList.remove('fade-out');
+                    fullBackground.classList.remove('hidden');
+                    fullBackground.style.opacity = '0';
+                    
+                    // フェードイン
+                    setTimeout(() => {
+                        fullBackground.style.transition = 'opacity 0.8s ease';
+                        fullBackground.style.opacity = '1';
+                    }, 50);
+                }, 800);
+            } else if (!choiceScreen.classList.contains('hidden')) {
+                // 選択画面から全画面背景へ
+                choiceScreen.style.transition = 'opacity 0.3s ease-out';
+                choiceScreen.style.opacity = '0';
+                
+                setTimeout(() => {
+                    choiceScreen.classList.add('hidden');
+                    choiceScreen.style.opacity = '1';
+                    choiceScreen.style.transition = '';
+                    fullBackground.classList.remove('hidden');
+                    fullBackground.style.opacity = '0';
+                    fullBackground.style.transition = 'opacity 0.3s ease-in';
+                    setTimeout(() => {
+                        fullBackground.style.opacity = '1';
+                    }, 50);
+                }, 300);
+            }
+        }
+
+        // 初期アニメーション
+        window.addEventListener('load', () => {
+            const elements = document.querySelectorAll('.animate-fade-in');
+            elements.forEach((el, index) => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(20px)';
+                el.style.transition = 'all 0.8s ease';
+                
+                setTimeout(() => {
+                    el.style.opacity = '1';
+                    el.style.transform = 'translateY(0)';
+                }, index * 200);
+            });
+        });
+
+        // レーダーチャート設定
+        const labels = ["思いやり","観察力","コミュニケーション","積極性","面白さ"];
+        const center = { x:450, y:450 };
+        const outerR = 320;
+        const startDeg = -90;
+        const stepDeg  = 72;
+        const gridRings = 5;
+
+        let currentData = {思いやり:85,観察力:92,コミュニケーション:68,積極性:78,面白さ:88};
+
+        function deg2rad(deg) { return deg * Math.PI / 180; }
+
+        function getAxisPoint(axisIndex, value) {
+            const deg = startDeg + axisIndex * stepDeg;
+            const rad = deg2rad(deg);
+            const r = (value / 100) * outerR;
+            return {
+                x: center.x + r * Math.cos(rad),
+                y: center.y + r * Math.sin(rad)
+            };
+        }
+
+        function drawRadar() {
+            const svg = document.getElementById('radar');
+            svg.innerHTML = `
+                <defs>
+                    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                        <feMerge> 
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                    <radialGradient id="dataGradient" cx="50%" cy="50%" r="60%">
+                        <stop offset="0%" style="stop-color:#ff6b9d;stop-opacity:0.8" />
+                        <stop offset="100%" style="stop-color:#ff6b9d;stop-opacity:0.2" />
+                    </radialGradient>
+                </defs>
+            `;
+
+            // グリッド円を描画
+            for (let i = 1; i <= gridRings; i++) {
+                const r = (i / gridRings) * outerR;
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', center.x);
+                circle.setAttribute('cy', center.y);
+                circle.setAttribute('r', r);
+                circle.setAttribute('fill', 'none');
+                circle.setAttribute('stroke', 'rgba(255,255,255,0.3)');
+                circle.setAttribute('stroke-width', '2');
+                svg.appendChild(circle);
+            }
+
+            // 軸線を描画
+            labels.forEach((label, i) => {
+                const deg = startDeg + i * stepDeg;
+                const rad = deg2rad(deg);
+                const endX = center.x + outerR * Math.cos(rad);
+                const endY = center.y + outerR * Math.sin(rad);
+                
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', center.x);
+                line.setAttribute('y1', center.y);
+                line.setAttribute('x2', endX);
+                line.setAttribute('y2', endY);
+                line.setAttribute('stroke', 'rgba(255,255,255,0.4)');
+                line.setAttribute('stroke-width', '2');
+                svg.appendChild(line);
+            });
+
+            // データポリゴンを描画
+            const points = labels.map((label, i) => {
+                const point = getAxisPoint(i, currentData[label]);
+                return `${point.x},${point.y}`;
+            }).join(' ');
+
+            const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            polygon.setAttribute('points', points);
+            polygon.setAttribute('fill', 'url(#dataGradient)');
+            polygon.setAttribute('stroke', '#ff6b9d');
+            polygon.setAttribute('stroke-width', '3');
+            polygon.setAttribute('filter', 'url(#softGlow)');
+            polygon.classList.add('pentagon-path');
+            svg.appendChild(polygon);
+
+            // データポイントを描画
+            labels.forEach((label, i) => {
+                const point = getAxisPoint(i, currentData[label]);
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', point.x);
+                circle.setAttribute('cy', point.y);
+                circle.setAttribute('r', '8');
+                circle.setAttribute('fill', '#ff6b9d');
+                circle.setAttribute('stroke', 'white');
+                circle.setAttribute('stroke-width', '2');
+                circle.setAttribute('filter', 'url(#softGlow)');
+                svg.appendChild(circle);
+            });
+
+            // 軸ラベルを描画
+            labels.forEach((label, i) => {
+                const deg = startDeg + i * stepDeg;
+                const rad = deg2rad(deg);
+                const labelR = outerR + 50;
+                const labelX = center.x + labelR * Math.cos(rad);
+                const labelY = center.y + labelR * Math.sin(rad);
+                
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', labelX);
+                text.setAttribute('y', labelY + 8);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('fill', 'white');
+                text.setAttribute('font-size', '28');
+                text.setAttribute('font-weight', '600');
+                text.style.textShadow = '2px 2px 4px rgba(0,0,0,0.7)';
+                text.textContent = label;
+                svg.appendChild(text);
+            });
+
+            // 数値バッジを描画
+            labels.forEach((label, i) => {
+                const deg = startDeg + i * stepDeg;
+                const rad = deg2rad(deg);
+                const badgeR = outerR + 100;
+                const badgeX = center.x + badgeR * Math.cos(rad);
+                const badgeY = center.y + badgeR * Math.sin(rad);
+                
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', badgeX);
+                circle.setAttribute('cy', badgeY);
+                circle.setAttribute('r', '24');
+                circle.setAttribute('fill', 'rgba(255,107,157,0.9)');
+                circle.setAttribute('stroke', 'white');
+                circle.setAttribute('stroke-width', '2');
+                svg.appendChild(circle);
+                
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', badgeX);
+                text.setAttribute('y', badgeY + 8);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('fill', 'white');
+                text.setAttribute('font-size', '24');
+                text.setAttribute('font-weight', 'bold');
+                text.style.textShadow = '1px 1px 2px rgba(0,0,0,0.7)';
+                text.textContent = currentData[label];
+                svg.appendChild(text);
+            });
+
+            // 中心点
+            const centerPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            centerPoint.setAttribute('cx', center.x);
+            centerPoint.setAttribute('cy', center.y);
+            centerPoint.setAttribute('r', '6');
+            centerPoint.setAttribute('fill', '#ff6b9d');
+            centerPoint.setAttribute('stroke', 'white');
+            centerPoint.setAttribute('stroke-width', '2');
+            svg.appendChild(centerPoint);
+        }
+
+        // ページロード時のアニメーション
+        document.addEventListener('DOMContentLoaded', function() {
+            // レーダーチャートを描画
+            drawRadar();
+
+            // 五角形チャートのアニメーション
+            setTimeout(() => {
+                const pentagonPath = document.querySelector('.pentagon-path');
+                if (pentagonPath) {
+                    pentagonPath.style.opacity = '0';
+                    pentagonPath.style.transform = 'scale(0)';
+                    pentagonPath.style.transformOrigin = 'center';
+                    pentagonPath.style.transition = 'opacity 1.5s ease-in-out, transform 1.5s ease-in-out';
+                    
+                    setTimeout(() => {
+                        pentagonPath.style.opacity = '1';
+                        pentagonPath.style.transform = 'scale(1)';
+                    }, 100);
+                }
+            }, 800);
+
+            // タイトルのフェードインアニメーション
+            const title = document.querySelector('.animate-fade-in');
+            if (title) {
+                title.style.opacity = '0';
+                title.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    title.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+                    title.style.opacity = '1';
+                    title.style.transform = 'translateY(0)';
+                }, 300);
+            }
+
+            // 結果テキストのアニメーション
+            const resultText = document.querySelector('.bg-white.bg-opacity-20');
+            if (resultText) {
+                resultText.style.opacity = '0';
+                resultText.style.transform = 'translateY(30px)';
+                setTimeout(() => {
+                    resultText.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+                    resultText.style.opacity = '1';
+                    resultText.style.transform = 'translateY(0)';
+                }, 1200);
+            }
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'978bbc00e38fd521',t:'MTc1NjgwMjc2MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

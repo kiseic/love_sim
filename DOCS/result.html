@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>恋愛成功 - おめでとうございます！</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* 背景動画 */
+        .background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .background-video {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            transform: translate(-50%, -50%);
+            object-fit: cover;
+        }
+
+        .background-fallback {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+            animation: gradientShift 8s ease-in-out infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%); }
+            50% { background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 50%, #ff9a9e 100%); }
+        }
+
+        /* 桜の花びらアニメーション */
+        .sakura {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #ffb3d9;
+            border-radius: 50% 0 50% 0;
+            animation: fall linear infinite;
+            opacity: 0.7;
+        }
+
+        .sakura:before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #ffb3d9;
+            border-radius: 50% 0 50% 0;
+            transform: rotate(45deg);
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 0.7;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* メインコンテンツ */
+        .container {
+            position: relative;
+            z-index: 10;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            padding-bottom: 40px;
+        }
+
+        .success-card {
+            background: transparent;
+            max-width: 500px;
+            width: 100%;
+            animation: slideUp 1s ease-out;
+        }
+
+        @keyframes slideUp {
+            0% {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .achievement-rate {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 15px;
+            padding: 8px 16px;
+            background: rgba(255, 107, 157, 0.3);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 107, 157, 0.5);
+            display: inline-block;
+            font-weight: 600;
+        }
+
+        .title {
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 15px;
+            display: inline-block;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: #4a5568;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .character-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px 0;
+            gap: 20px;
+        }
+
+        .relationship-change {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .relationship-before, .relationship-after {
+            text-align: center;
+        }
+
+        .relationship-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .relationship-status {
+            font-size: 16px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.9);
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .relationship-status.success {
+            background: rgba(255, 107, 157, 0.3);
+            border-color: rgba(255, 107, 157, 0.5);
+            color: white;
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 10px rgba(255, 107, 157, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(255, 107, 157, 0.6); }
+        }
+
+        .arrow {
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: bold;
+            animation: slideArrow 2s ease-in-out infinite;
+        }
+
+        @keyframes slideArrow {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(5px); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .character-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        .character-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .character-placeholder {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: white;
+        }
+
+        .character-section > div:nth-child(3) .character-image {
+            animation-delay: 0.5s;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .love-symbol {
+            font-size: 30px;
+            color: #ff6b9d;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.2); }
+        }
+
+        .character-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: #2d3748;
+            margin-top: 10px;
+        }
+
+        .stats {
+            background: rgba(255, 182, 193, 0.2);
+            border-radius: 20px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .stat-label {
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            color: #ff6b9d;
+            font-weight: 700;
+        }
+
+        .buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 30px;
+            align-items: center;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+
+        .btn-primary {
+            background: rgba(255, 107, 157, 0.8);
+            color: white;
+            box-shadow: 0 10px 30px rgba(255, 107, 157, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(255, 107, 157, 0.4);
+            background: rgba(255, 107, 157, 0.9);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-share {
+            background: rgba(186, 164, 235, 0.8);
+            color: white;
+            box-shadow: 0 10px 30px rgba(186, 164, 235, 0.3);
+            backdrop-filter: blur(10px);
+            padding: 12px 30px;
+        }
+
+        .btn-share:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(186, 164, 235, 0.4);
+            background: rgba(186, 164, 235, 0.9);
+        }
+
+        /* レスポンシブ対応 */
+        @media (max-width: 768px) {
+            .success-card {
+                padding: 40px 30px;
+                margin: 20px;
+            }
+            
+            .title {
+                font-size: 14px;
+            }
+            
+            .subtitle {
+                font-size: 16px;
+            }
+            
+            .character {
+                width: 70px;
+                height: 70px;
+                font-size: 35px;
+            }
+            
+            .button-row:last-child {
+                flex-direction: column;
+                width: 100%;
+                align-items: center;
+            }
+            
+            .button-row:last-child .btn {
+                width: 80%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background">
+        <video class="background-video" id="backgroundVideo" autoplay muted loop>
+            <source src="" type="video/mp4">
+            <!-- 動画が読み込めない場合のフォールバック -->
+        </video>
+        <div class="background-fallback" id="backgroundFallback"></div>
+    </div>
+    
+    <!-- 桜の花びら -->
+    <div class="sakura" style="left: 10%; animation-duration: 8s; animation-delay: 0s;"></div>
+    <div class="sakura" style="left: 20%; animation-duration: 10s; animation-delay: 2s;"></div>
+    <div class="sakura" style="left: 30%; animation-duration: 7s; animation-delay: 4s;"></div>
+    <div class="sakura" style="left: 40%; animation-duration: 9s; animation-delay: 1s;"></div>
+    <div class="sakura" style="left: 50%; animation-duration: 8s; animation-delay: 3s;"></div>
+    <div class="sakura" style="left: 60%; animation-duration: 11s; animation-delay: 5s;"></div>
+    <div class="sakura" style="left: 70%; animation-duration: 7s; animation-delay: 2s;"></div>
+    <div class="sakura" style="left: 80%; animation-duration: 9s; animation-delay: 4s;"></div>
+    <div class="sakura" style="left: 90%; animation-duration: 10s; animation-delay: 1s;"></div>
+
+    <div class="container">
+        <div class="success-card">
+
+            
+
+            
+            <div class="relationship-change">
+                <div class="relationship-before">
+                    <span class="relationship-label">これまでの関係</span>
+                    <div class="relationship-status">友達</div>
+                </div>
+                <div class="arrow">→</div>
+                <div class="relationship-after">
+                    <span class="relationship-label">新しい関係</span>
+                    <div class="relationship-status success">恋人同士 💕</div>
+                </div>
+            </div>
+            
+            <div class="buttons">
+                <div class="button-row">
+                    <button class="btn btn-primary" onclick="continueStory()">続きをする</button>
+                    <button class="btn btn-secondary" onclick="playAgain()">もう一度プレイ</button>
+                </div>
+                <div class="button-row">
+                    <button class="btn btn-share" onclick="shareResult()">結果をシェア ✨</button>
+                </div>
+            </div>
+            
+
+        </div>
+    </div>
+
+    <script>
+        // ボタンの機能
+        function shareResult() {
+            // シェア機能のシミュレーション
+            const message = "友達にも解いてもらいませんか？";
+            
+            // シェアダイアログを表示
+            showShareDialog();
+        }
+
+        function showShareDialog() {
+            const dialog = document.createElement('div');
+            dialog.innerHTML = `
+                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: white; padding: 30px; border-radius: 20px; max-width: 400px; width: 90%; text-align: center; animation: slideUp 0.3s ease-out;">
+                        <h3 style="color: #ff6b9d; margin-bottom: 20px; font-size: 20px;">結果をシェア 📱</h3>
+                        <p style="color: #666; margin-bottom: 25px; line-height: 1.6;">友達にも解いてもらいませんか？</p>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px;">
+                            <button onclick="shareToTwitter()" style="background: #1da1f2; color: white; border: none; padding: 10px 20px; border-radius: 15px; cursor: pointer; font-size: 14px;">Twitter</button>
+                            <button onclick="shareToLine()" style="background: #00c300; color: white; border: none; padding: 10px 20px; border-radius: 15px; cursor: pointer; font-size: 14px;">LINE</button>
+                            <button onclick="copyToClipboard()" style="background: #666; color: white; border: none; padding: 10px 20px; border-radius: 15px; cursor: pointer; font-size: 14px;">コピー</button>
+                        </div>
+                        <button onclick="closeDialog()" style="background: #f0f0f0; color: #666; border: none; padding: 10px 30px; border-radius: 15px; cursor: pointer;">閉じる</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(dialog);
+            
+            window.closeDialog = () => dialog.remove();
+            window.shareToTwitter = () => {
+                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent('友達にも解いてもらいませんか？')}`, '_blank');
+                dialog.remove();
+            };
+            window.shareToLine = () => {
+                window.open(`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent('友達にも解いてもらいませんか？')}`, '_blank');
+                dialog.remove();
+            };
+            window.copyToClipboard = () => {
+                navigator.clipboard.writeText('友達にも解いてもらいませんか？ ' + window.location.href).then(() => {
+                    alert('クリップボードにコピーしました！🎉');
+                    dialog.remove();
+                });
+            };
+        }
+
+        function playAgain() {
+            // 再プレイ確認ダイアログを表示
+            showReplayDialog();
+        }
+
+        function continueStory() {
+            // 続きをするダイアログを表示
+            showContinueDialog();
+        }
+
+        function showContinueDialog() {
+            const dialog = document.createElement('div');
+            dialog.innerHTML = `
+                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: white; padding: 30px; border-radius: 20px; max-width: 400px; width: 90%; text-align: center; animation: slideUp 0.3s ease-out;">
+                        <h3 style="color: #ff6b9d; margin-bottom: 20px; font-size: 20px;">続きをする 💕</h3>
+                        <p style="color: #666; margin-bottom: 25px; line-height: 1.6;">同じ設定で<br>続きのストーリーを始めますか？</p>
+                        <div style="display: flex; gap: 15px; justify-content: center;">
+                            <button onclick="startContinue()" style="background: #ff6b9d; color: white; border: none; padding: 12px 25px; border-radius: 15px; cursor: pointer; font-size: 16px; font-weight: 600;">続きを開始</button>
+                            <button onclick="closeContinueDialog()" style="background: #f0f0f0; color: #666; border: none; padding: 12px 25px; border-radius: 15px; cursor: pointer; font-size: 16px;">キャンセル</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(dialog);
+            
+            window.closeContinueDialog = () => dialog.remove();
+            window.startContinue = () => {
+                // 続きのストーリー開始のアニメーション
+                const continueDialog = document.createElement('div');
+                continueDialog.innerHTML = `
+                    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 107, 157, 0.9); z-index: 1001; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                        <div style="color: white; font-size: 24px; font-weight: 700; margin-bottom: 20px; animation: pulse 1s ease-in-out infinite;">続きのストーリーを準備中...</div>
+                        <div style="width: 50px; height: 50px; border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid white; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    </div>
+                `;
+                document.body.appendChild(continueDialog);
+                
+                // 2秒後に続きのページに移動（デモ用）
+                setTimeout(() => {
+                    alert('続きのストーリーはまだ開発中です！お楽しみに 💕');
+                    continueDialog.remove();
+                }, 2000);
+                
+                dialog.remove();
+            };
+        }
+
+        function showReplayDialog() {
+            const dialog = document.createElement('div');
+            dialog.innerHTML = `
+                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: white; padding: 30px; border-radius: 20px; max-width: 400px; width: 90%; text-align: center; animation: slideUp 0.3s ease-out;">
+                        <h3 style="color: #ff6b9d; margin-bottom: 20px; font-size: 20px;">もう一度プレイ 🎮</h3>
+                        <p style="color: #666; margin-bottom: 25px; line-height: 1.6;">新しいゲームを開始しますか？<br>現在の進行状況は失われます。</p>
+                        <div style="display: flex; gap: 15px; justify-content: center;">
+                            <button onclick="confirmReplay()" style="background: #ff6b9d; color: white; border: none; padding: 12px 25px; border-radius: 15px; cursor: pointer; font-size: 16px; font-weight: 600;">開始する</button>
+                            <button onclick="closeReplayDialog()" style="background: #f0f0f0; color: #666; border: none; padding: 12px 25px; border-radius: 15px; cursor: pointer; font-size: 16px;">キャンセル</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(dialog);
+            
+            window.closeReplayDialog = () => dialog.remove();
+            window.confirmReplay = () => {
+                // リプレイ開始のアニメーション
+                const replayDialog = document.createElement('div');
+                replayDialog.innerHTML = `
+                    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 107, 157, 0.9); z-index: 1001; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                        <div style="color: white; font-size: 24px; font-weight: 700; margin-bottom: 20px; animation: pulse 1s ease-in-out infinite;">新しいゲームを開始中...</div>
+                        <div style="width: 50px; height: 50px; border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid white; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    </div>
+                `;
+                document.body.appendChild(replayDialog);
+                
+                // 2秒後にページをリロード
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+                
+                dialog.remove();
+            };
+        }
+
+        // 追加の桜エフェクト
+        function createSakura() {
+            const sakura = document.createElement('div');
+            sakura.className = 'sakura';
+            sakura.style.left = Math.random() * 100 + '%';
+            sakura.style.animationDuration = (Math.random() * 3 + 7) + 's';
+            sakura.style.animationDelay = Math.random() * 2 + 's';
+            document.body.appendChild(sakura);
+            
+            // 15秒後に要素を削除
+            setTimeout(() => {
+                sakura.remove();
+            }, 15000);
+        }
+
+        // 定期的に桜を生成
+        setInterval(createSakura, 3000);
+
+        // 成功音のシミュレーション（視覚的フィードバック）
+        function celebrationEffect() {
+            const card = document.querySelector('.success-card');
+            card.style.transform = 'scale(1.05)';
+            setTimeout(() => {
+                card.style.transform = 'scale(1)';
+            }, 200);
+        }
+
+        // 画像設定機能
+        function setPlayerImage(imageUrl) {
+            const img = document.querySelector('#playerImage img');
+            const placeholder = document.querySelector('#playerImage .character-placeholder');
+            
+            if (imageUrl && imageUrl.trim() !== '') {
+                img.src = imageUrl;
+                img.style.display = 'block';
+                placeholder.style.display = 'none';
+            } else {
+                img.style.display = 'none';
+                placeholder.style.display = 'flex';
+            }
+        }
+
+        function setTargetImage(imageUrl) {
+            const img = document.querySelector('#targetImage img');
+            const placeholder = document.querySelector('#targetImage .character-placeholder');
+            
+            if (imageUrl && imageUrl.trim() !== '') {
+                img.src = imageUrl;
+                img.style.display = 'block';
+                placeholder.style.display = 'none';
+            } else {
+                img.style.display = 'none';
+                placeholder.style.display = 'flex';
+            }
+        }
+
+        // 関係性設定機能
+        function setRelationshipChange(beforeRelation, afterRelation) {
+            const beforeElement = document.querySelector('.relationship-before .relationship-status');
+            const afterElement = document.querySelector('.relationship-after .relationship-status');
+            
+            if (beforeRelation) beforeElement.textContent = beforeRelation;
+            if (afterRelation) afterElement.textContent = afterRelation + ' 💕';
+        }
+
+        // 背景動画設定機能
+        function setBackgroundVideo(videoUrl) {
+            const video = document.getElementById('backgroundVideo');
+            const fallback = document.getElementById('backgroundFallback');
+            
+            if (videoUrl && videoUrl.trim() !== '') {
+                video.src = videoUrl;
+                video.style.display = 'block';
+                fallback.style.display = 'none';
+                
+                // 動画読み込みエラー時のフォールバック
+                video.onerror = function() {
+                    video.style.display = 'none';
+                    fallback.style.display = 'block';
+                };
+            } else {
+                video.style.display = 'none';
+                fallback.style.display = 'block';
+            }
+        }
+
+        // 使用例（開発者向け）:
+        // setPlayerImage('https://example.com/player.jpg');
+        // setTargetImage('https://example.com/target.jpg');
+        // setRelationshipChange('クラスメート', '恋人同士');
+        // setBackgroundVideo('https://example.com/background.mp4');
+
+        // ページ読み込み時に祝福エフェクト
+        window.addEventListener('load', () => {
+            setTimeout(celebrationEffect, 1000);
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'976a8e1f203fe36d',t:'MTc1NjQ1NDg1MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

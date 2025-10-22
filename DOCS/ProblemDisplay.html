@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>恋愛シミュレーション</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        /* 背景画像 */
+        .background-image {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080"><defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:%2387CEEB;stop-opacity:1" /><stop offset="50%" style="stop-color:%23FFE4B5;stop-opacity:1" /><stop offset="100%" style="stop-color:%23FFA07A;stop-opacity:1" /></linearGradient></defs><rect width="1920" height="1080" fill="url(%23bg)"/></svg>') center/cover no-repeat;
+            z-index: -1;
+        }
+        
+        /* 背景オーバーレイ */
+        .background-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .background-overlay.hidden {
+            opacity: 0;
+        }
+        
+        .game-container {
+            width: 100vw;
+            height: 100vh;
+            max-width: calc(100vh * 9 / 16);
+            max-height: calc(100vw * 16 / 9);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 10px;
+            aspect-ratio: 9 / 16;
+            transition: transform 0.3s ease;
+            cursor: grab;
+        }
+        
+        .game-container:active {
+            cursor: grabbing;
+        }
+        
+        /* デスクトップ用のスタイル */
+        @media (min-width: 768px) {
+            .game-container {
+                width: 90vw;
+                height: 90vh;
+                max-width: 1200px;
+                max-height: 800px;
+                aspect-ratio: 16 / 9;
+            }
+            
+            .choice-btn {
+                padding: 16px 20px;
+                font-size: 14px;
+                max-width: 220px;
+                min-height: 70px;
+            }
+            
+            .choice-top {
+                top: 8%;
+                left: 8%;
+            }
+            
+            .choice-right {
+                top: 8%;
+                right: 8%;
+            }
+            
+            .choice-bottom {
+                bottom: 35%;
+                left: 8%;
+            }
+            
+            .choice-left {
+                bottom: 35%;
+                right: 8%;
+            }
+            
+            .question-text {
+                font-size: 18px;
+                padding: 20px 30px;
+                bottom: 0;
+            }
+            
+            .confirm-btn {
+                font-size: 16px;
+                padding: 15px 30px;
+                bottom: 15%;
+            }
+            
+            .free-text-container {
+                bottom: 25%;
+                width: 60%;
+                max-width: 500px;
+            }
+        }
+        
+
+        
+        /* 四隅配置の選択肢 */
+        .choice-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        .choice-btn {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            border: 3px solid rgba(255, 182, 193, 0.8);
+            border-radius: 20px;
+            padding: 12px 16px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #2d3748;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Noto Sans JP', sans-serif;
+            text-align: center;
+            line-height: 1.3;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+            white-space: normal;
+            overflow: visible;
+            height: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            word-wrap: break-word;
+            animation: floatAnimation 3s ease-in-out infinite;
+            max-width: 180px;
+            min-height: 60px;
+        }
+        
+        @keyframes floatAnimation {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+        
+        .choice-top {
+            animation-delay: 0s;
+        }
+        
+        .choice-right {
+            animation-delay: 0.5s;
+        }
+        
+        .choice-bottom {
+            animation-delay: 1s;
+        }
+        
+        .choice-left {
+            animation-delay: 1.5s;
+        }
+        
+        /* 吹き出しの尻尾 */
+        .choice-btn::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-style: solid;
+        }
+        
+        /* 左上の吹き出し - 左下に尻尾 */
+        .choice-top::after {
+            bottom: -12px;
+            left: 20px;
+            border-width: 12px 0 0 12px;
+            border-color: rgba(255, 182, 193, 0.8) transparent transparent transparent;
+        }
+        
+        /* 右上の吹き出し - 右下に尻尾 */
+        .choice-right::after {
+            bottom: -12px;
+            right: 20px;
+            border-width: 12px 12px 0 0;
+            border-color: rgba(255, 182, 193, 0.8) transparent transparent transparent;
+        }
+        
+        /* 左下の吹き出し - 左下に尻尾 */
+        .choice-bottom::after {
+            bottom: -12px;
+            left: 20px;
+            border-width: 12px 0 0 12px;
+            border-color: rgba(255, 182, 193, 0.8) transparent transparent transparent;
+        }
+        
+        /* 右下の吹き出し - 右下に尻尾 */
+        .choice-left::after {
+            bottom: -12px;
+            right: 20px;
+            border-width: 12px 12px 0 0;
+            border-color: rgba(255, 182, 193, 0.8) transparent transparent transparent;
+        }
+        
+        /* 四隅の位置設定 */
+        .choice-top {
+            top: 5%;
+            left: 5%;
+        }
+        
+        .choice-right {
+            top: 5%;
+            right: 5%;
+        }
+        
+        .choice-bottom {
+            bottom: 35%;
+            left: 5%;
+        }
+        
+        .choice-left {
+            bottom: 35%;
+            right: 5%;
+        }
+        
+        .choice-btn:hover {
+            background: rgba(255, 182, 193, 0.3);
+            border-color: #ff6b9d;
+            transform: scale(1.02);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .choice-btn.selected {
+            background: linear-gradient(135deg, #ff6b9d, #c44569);
+            color: white;
+            border-color: #ff6b9d;
+            transform: scale(1.02);
+        }
+        
+        /* 決定ボタン */
+        .confirm-btn {
+            position: absolute;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Noto Sans JP', sans-serif;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            z-index: 3;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .confirm-btn.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+        
+        /* 質問テキスト */
+        .question-text {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            font-size: 15px;
+            font-weight: 500;
+            color: white;
+            text-align: center;
+            line-height: 1.5;
+            backdrop-filter: blur(10px);
+            z-index: 3;
+            width: 100%;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        /* 自由記述欄 */
+        .free-text-container {
+            position: absolute;
+            bottom: 25%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 400px;
+            z-index: 2;
+        }
+        
+        .free-text-input {
+            width: 100%;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 3px solid rgba(255, 182, 193, 0.8);
+            border-radius: 15px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 400;
+            color: #2d3748;
+            font-family: 'Noto Sans JP', sans-serif;
+            resize: none;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            outline: none;
+        }
+        
+        .free-text-input:focus {
+            border-color: #ff6b9d;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .free-text-input::placeholder {
+            color: #a0aec0;
+            font-style: italic;
+        }
+
+        /* 選択された答えの表示 */
+        .selected-answer {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            border: 3px solid rgba(255, 182, 193, 0.8);
+            border-radius: 15px;
+            padding: 20px 25px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #2d3748;
+            text-align: center;
+            line-height: 1.4;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            z-index: 3;
+            max-width: 80%;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.5s ease;
+        }
+        
+        .selected-answer.show {
+            opacity: 1;
+            visibility: visible;
+            animation: heartbeatPulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes heartbeatPulse {
+            0% {
+                transform: translateX(-50%) scale(1);
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            }
+            14% {
+                transform: translateX(-50%) scale(1.05);
+                box-shadow: 0 6px 20px rgba(255, 182, 193, 0.4);
+            }
+            28% {
+                transform: translateX(-50%) scale(1);
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            }
+            42% {
+                transform: translateX(-50%) scale(1.08);
+                box-shadow: 0 8px 25px rgba(255, 182, 193, 0.6);
+            }
+            70% {
+                transform: translateX(-50%) scale(1);
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            }
+        }
+        
+        .confirm-btn:hover.active {
+            transform: translateX(-50%) translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        @media (max-width: 480px) {
+            .choice-btn {
+                padding: 10px 14px;
+                font-size: 11px;
+                border-radius: 18px;
+                min-height: 55px;
+                max-width: 160px;
+            }
+            
+            .choice-top {
+                top: 8%;
+                left: 3%;
+            }
+            
+            .choice-right {
+                top: 8%;
+                right: 3%;
+            }
+            
+            .choice-bottom {
+                bottom: 35%;
+                left: 3%;
+            }
+            
+            .choice-left {
+                bottom: 35%;
+                right: 3%;
+            }
+            
+            .question-text {
+                font-size: 14px;
+                padding: 15px;
+                bottom: 0;
+            }
+            
+            .confirm-btn {
+                bottom: 13%;
+                padding: 12px 25px;
+                font-size: 15px;
+            }
+            
+            .free-text-container {
+                bottom: 23%;
+                width: 85%;
+            }
+            
+            .free-text-input {
+                height: 45px;
+                font-size: 13px;
+                padding: 12px 16px;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            .choice-btn {
+                padding: 8px 12px;
+                font-size: 10px;
+                min-height: 50px;
+                max-width: 140px;
+            }
+            
+            .choice-top {
+                top: 10%;
+                left: 2%;
+            }
+            
+            .choice-right {
+                top: 10%;
+                right: 2%;
+            }
+            
+            .choice-bottom {
+                bottom: 37%;
+                left: 2%;
+            }
+            
+            .choice-left {
+                bottom: 37%;
+                right: 2%;
+            }
+            
+            .question-text {
+                font-size: 13px;
+                padding: 12px;
+                bottom: 0;
+            }
+            
+            .confirm-btn {
+                bottom: 11%;
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+            
+            .free-text-container {
+                bottom: 21%;
+                width: 90%;
+            }
+            
+            .free-text-input {
+                height: 40px;
+                font-size: 12px;
+                padding: 10px 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-image"></div>
+    <div class="background-overlay" id="backgroundOverlay"></div>
+    
+    <div class="game-container">
+        <div class="question-text" id="questionText">
+            「今度の休日、一緒にどこか行かない？」<br>美咲があなたに提案してきました。
+        </div>
+        
+
+        
+        <div class="choice-container">
+            <button class="choice-btn choice-top" data-answer="A">
+                「いいね！どこに行きたい？」と積極的に応える
+            </button>
+            
+            <button class="choice-btn choice-right" data-answer="B">
+                「うーん、ちょっと忙しいかも...」と曖昧に答える
+            </button>
+            
+            <button class="choice-btn choice-bottom" data-answer="C">
+                「君の好きな場所に付き合うよ」と優しく答える
+            </button>
+            
+            <button class="choice-btn choice-left" data-answer="D">
+                「映画でも見に行こうか」と具体的な提案をする
+            </button>
+        </div>
+        
+        <button class="confirm-btn" id="confirmBtn">選択する ➤</button>
+        
+        <!-- 自由記述欄 -->
+        <div class="free-text-container">
+            <input type="text" class="free-text-input" id="freeTextInput" placeholder="入力してオリジナルの答えを作る...">
+        </div>
+        
+        <div class="selected-answer" id="selectedAnswer"></div>
+    </div>
+
+    <script>
+        // ゲーム状態管理
+        let currentScenario = 2;
+        let selectedAnswer = null;
+        
+        const scenarios = [
+            {
+                character: { name: "美咲", avatar: "👩" },
+                text: "「今度の休日、一緒にどこか行かない？」美咲があなたに提案してきました。",
+                options: [
+                    "「いいね！どこに行きたい？」と積極的に応える",
+                    "「うーん、ちょっと忙しいかも...」と曖昧に答える", 
+                    "「君の好きな場所に付き合うよ」と優しく答える",
+                    "「映画でも見に行こうか」と具体的な提案をする"
+                ]
+            },
+            {
+                character: { name: "美咲", avatar: "👩" },
+                text: "「あなたって、いつも優しいよね...」美咲が少し照れながら言いました。",
+                options: [
+                    "「君といると自然にそうなるんだ」と答える",
+                    "「そんなことないよ」と謙遜する",
+                    "「美咲も優しいじゃない」と返す", 
+                    "黙って微笑みかける"
+                ]
+            }
+        ];
+        
+        // 選択肢クリックの処理
+        document.querySelectorAll('.choice-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // 前の選択をクリア
+                document.querySelectorAll('.choice-btn').forEach(b => {
+                    b.classList.remove('selected');
+                });
+                
+                // 自由記述欄をクリア
+                document.getElementById('freeTextInput').value = '';
+                
+                // 新しい選択をマーク
+                this.classList.add('selected');
+                selectedAnswer = this.dataset.answer;
+                
+                // 確定ボタンを有効化
+                document.getElementById('confirmBtn').classList.add('active');
+            });
+        });
+        
+        // 自由記述欄の処理
+        document.getElementById('freeTextInput').addEventListener('input', function() {
+            if (this.value.trim()) {
+                // 選択肢の選択をクリア
+                document.querySelectorAll('.choice-btn').forEach(b => {
+                    b.classList.remove('selected');
+                });
+                
+                selectedAnswer = 'free-text';
+                
+                // 確定ボタンを有効化
+                document.getElementById('confirmBtn').classList.add('active');
+            } else {
+                selectedAnswer = null;
+                document.getElementById('confirmBtn').classList.remove('active');
+            }
+        });
+        
+        // 確定ボタンの処理
+        document.getElementById('confirmBtn').addEventListener('click', function() {
+            if (!selectedAnswer) return;
+            
+            // 選択された答えのテキストを取得
+            let selectedText;
+            if (selectedAnswer === 'free-text') {
+                selectedText = document.getElementById('freeTextInput').value.trim();
+            } else {
+                const selectedBtn = document.querySelector('.choice-btn.selected');
+                selectedText = selectedBtn.textContent;
+            }
+            
+            // 選択時の効果音（視覚的フィードバック）
+            document.body.style.filter = 'brightness(1.1)';
+            setTimeout(() => {
+                document.body.style.filter = 'brightness(1)';
+            }, 200);
+            
+            // 全ての選択肢を非表示にする
+            document.querySelectorAll('.choice-btn').forEach(btn => {
+                btn.style.opacity = '0';
+                btn.style.visibility = 'hidden';
+                btn.style.pointerEvents = 'none';
+            });
+            
+            // 自由記述欄を非表示にする
+            document.querySelector('.free-text-container').style.opacity = '0';
+            document.querySelector('.free-text-container').style.visibility = 'hidden';
+            
+            // 質問テキストを非表示にする
+            document.getElementById('questionText').style.opacity = '0';
+            document.getElementById('questionText').style.visibility = 'hidden';
+            
+            // 確定ボタンを非表示にする
+            document.getElementById('confirmBtn').style.opacity = '0';
+            document.getElementById('confirmBtn').style.visibility = 'hidden';
+            
+            // 背景のグレーオーバーレイを削除
+            document.getElementById('backgroundOverlay').classList.add('hidden');
+            
+            // 選択された答えを表示
+            setTimeout(() => {
+                document.getElementById('selectedAnswer').textContent = selectedText;
+                document.getElementById('selectedAnswer').classList.add('show');
+            }, 300);
+        });
+        
+        // シナリオ更新
+        function updateScenario() {
+            const newScenarios = [
+                "「ありがとう、とても楽しかった！」美咲が笑顔で言いました。",
+                "「また今度、二人で出かけない？」美咲が提案してきました。",
+                "「あなたと一緒にいると、時間があっという間に過ぎちゃう」"
+            ];
+            
+            const randomScenario = newScenarios[Math.floor(Math.random() * newScenarios.length)];
+            document.getElementById('questionText').innerHTML = randomScenario;
+            
+            // 選択肢も更新
+            const newOptions = [
+                "「僕もだよ」と素直に答える",
+                "「そう言ってもらえて嬉しい」と返す",
+                "「もっと一緒にいたいな」と伝える",
+                "手を握って微笑む"
+            ];
+            
+            const choiceBtns = document.querySelectorAll('.choice-btn');
+            choiceBtns.forEach((btn, index) => {
+                btn.textContent = newOptions[index];
+            });
+        }
+        
+
+        
+
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'976a1d2ca4ffe366',t:'MTc1NjQ1MDIyNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

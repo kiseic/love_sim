@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>恋愛シミュレーション - 解説</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+        
+        .animated-bg {
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .floating-hearts {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .heart {
+            position: absolute;
+            font-size: 20px;
+            animation: float 6s ease-in-out infinite;
+            opacity: 0.3;
+        }
+        
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.3;
+            }
+            90% {
+                opacity: 0.3;
+            }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+        }
+        
+        .reveal-animation {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: revealUp 0.8s ease-out forwards;
+        }
+        
+        @keyframes revealUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        .pulse-glow {
+            animation: pulseGlow 3s ease-in-out infinite;
+        }
+        
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(236, 72, 153, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(236, 72, 153, 0.6);
+            }
+        }
+        
+        .typewriter {
+            overflow: hidden;
+            border-right: 2px solid #ec4899;
+            white-space: nowrap;
+            animation: typing 3s steps(40, end), blink-caret 0.75s step-end infinite;
+        }
+        
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+        
+        @keyframes blink-caret {
+            from, to { border-color: transparent; }
+            50% { border-color: #ec4899; }
+        }
+        
+        .hover-lift {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
+        }
+        
+        .sparkle {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sparkle::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+            animation: sparkle 3s infinite;
+        }
+        
+        @keyframes sparkle {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        .gradient-text {
+            background: linear-gradient(45deg, #ec4899, #8b5cf6, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientMove 3s ease-in-out infinite;
+        }
+        
+        @keyframes gradientMove {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .choice-btn {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.8);
+            border: 2px solid transparent;
+            border-radius: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .choice-btn.active {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: #3b82f6;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+        }
+        
+        .your-choice-badge {
+            background: linear-gradient(45deg, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: auto;
+        }
+    </style>
+</head>
+<body class="animated-bg min-h-screen relative overflow-x-hidden">
+    <!-- 浮遊するハート -->
+    <div class="floating-hearts">
+        <div class="heart" style="left: 10%; animation-delay: 0s;">💖</div>
+        <div class="heart" style="left: 20%; animation-delay: 1s;">💕</div>
+        <div class="heart" style="left: 30%; animation-delay: 2s;">💝</div>
+        <div class="heart" style="left: 40%; animation-delay: 3s;">💗</div>
+        <div class="heart" style="left: 50%; animation-delay: 4s;">💓</div>
+        <div class="heart" style="left: 60%; animation-delay: 5s;">💖</div>
+        <div class="heart" style="left: 70%; animation-delay: 1.5s;">💕</div>
+        <div class="heart" style="left: 80%; animation-delay: 2.5s;">💝</div>
+        <div class="heart" style="left: 90%; animation-delay: 3.5s;">💗</div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-5xl relative z-10">
+        <!-- ヘッダー -->
+        <div class="text-center mb-12 reveal-animation">
+            <div class="inline-flex items-center gap-4 mb-6">
+                <span class="text-6xl pulse-glow">💕</span>
+                <h1 class="text-5xl font-bold text-white drop-shadow-2xl typewriter" style="text-shadow: 2px 2px 8px rgba(0,0,0,0.5), 0 0 20px rgba(255,255,255,0.3);">恋愛TIPs</h1>
+                <span class="text-6xl pulse-glow">💕</span>
+            </div>
+            <p class="text-white/90 text-xl font-light tracking-wide">あなたの選択から学ぶ恋愛のコツ</p>
+        </div>
+
+        <!-- メインコンテンツ -->
+        <div class="glass-card rounded-3xl p-10 mb-8 reveal-animation hover-lift sparkle" style="animation-delay: 0.2s;">
+
+
+
+            <!-- シチュエーション -->
+            <div class="mb-8">
+                <div class="bg-gradient-to-br from-pink-50 via-pink-100 to-pink-150 rounded-3xl p-8 hover-lift">
+                    <div class="flex items-start gap-4 mb-8">
+                        <span class="text-3xl">💭</span>
+                        <div>
+                            <h2 class="text-2xl font-semibold text-gray-800 mb-4">シチュエーション</h2>
+                            <p class="text-gray-600 leading-relaxed text-lg">
+                                あなたは好きな人とショッピングデートをしています。相手が少し疲れた様子を見せています。この時、あなたはどのような声をかけますか？
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- あなたの選択 -->
+                    <div class="bg-white/80 rounded-2xl p-6 border-2 border-blue-300">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="text-2xl">✨</span>
+                            <h4 class="font-semibold text-blue-800">あなたの選択</h4>
+                            <div class="ml-auto px-4 py-2 rounded-full text-sm font-bold bg-green-500 text-white">GOOD</div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="text-left">
+                                <p class="font-medium text-gray-800 mb-1">A. 「疲れた？少し休憩しようか」</p>
+                                <p class="text-sm text-gray-600">相手の状況を気遣い、優しく提案する</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 他の選択肢も試してみる -->
+            <div class="mb-12">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-2xl pulse-glow">🔍</div>
+                    <h2 class="text-xl font-semibold text-gray-800">他の選択肢も試してみる</h2>
+                </div>
+                
+                <div class="bg-gradient-to-br from-yellow-50 via-yellow-100 to-yellow-150 rounded-3xl p-8 hover-lift">
+                    <div class="grid gap-4">
+                        <button class="choice-btn" data-choice="1" onclick="selectChoice(1)">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-start gap-3">
+                                    <div class="text-left">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <p class="font-medium text-gray-800">B. 「次はあのお店に行こう！」</p>
+                                            <div class="px-3 py-1 rounded-full text-xs font-bold bg-blue-500 text-white">GOOD</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="your-choice-badge choice-badge" id="badge-1" style="display: none;">選択中</div>
+                            </div>
+                        </button>
+                        
+                        <button class="choice-btn" data-choice="2" onclick="selectChoice(2)">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-start gap-3">
+                                    <div class="text-left">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <p class="font-medium text-gray-800">C. 何も言わずに様子を見る</p>
+                                            <div class="px-3 py-1 rounded-full text-xs font-bold bg-red-500 text-white">BAD</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="your-choice-badge choice-badge" id="badge-2" style="display: none;">選択中</div>
+                            </div>
+                        </button>
+                        
+                        <button class="choice-btn" data-choice="3" onclick="selectChoice(3)">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-start gap-3">
+                                    <div class="text-left">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <p class="font-medium text-gray-800">D. 「カフェでも探そうか」</p>
+                                            <div class="px-3 py-1 rounded-full text-xs font-bold bg-blue-500 text-white">GOOD</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="your-choice-badge choice-badge" id="badge-3" style="display: none;">選択中</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 選択の評価 -->
+            <div class="mb-10">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-2xl pulse-glow">📊</div>
+                    <h2 class="text-2xl font-semibold text-gray-800">
+                        <span id="current-choice-title">あなたの恋愛スキル分析</span>
+                    </h2>
+                </div>
+                
+
+                
+                <!-- レーダーチャート -->
+                <div class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 rounded-3xl p-4 md:p-8 mb-6 hover-lift">
+                    <h3 class="font-semibold text-slate-800 mb-6 flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-3 text-lg md:text-xl">
+                        <div class="flex items-center gap-2">
+                            <span class="text-2xl">🎯</span>
+                            <span>恋愛スキルレーダー</span>
+                        </div>
+                    </h3>
+                    <div class="flex justify-center overflow-x-auto">
+                        <div class="relative min-w-[320px] w-full max-w-[500px] aspect-square">
+                            <canvas id="radarChart" class="w-full h-full"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 詳細評価 -->
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 rounded-3xl p-8 hover-lift">
+                        <h3 class="font-semibold text-emerald-800 mb-4 flex items-center gap-3 text-xl">
+                            <span class="text-2xl">🌟</span>
+                            優れている点
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex items-start gap-3">
+                                <span class="text-green-500 text-xl mt-1">✓</span>
+                                <div>
+                                    <p class="font-medium text-gray-800">相手への配慮</p>
+                                    <p class="text-sm text-gray-600">疲れている相手に気づき、適切な提案ができています</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <span class="text-green-500 text-xl mt-1">✓</span>
+                                <div>
+                                    <p class="font-medium text-gray-800">自然なコミュニケーション</p>
+                                    <p class="text-sm text-gray-600">押し付けがましくない優しい声かけ</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 rounded-3xl p-8 hover-lift">
+                        <h3 class="font-semibold text-amber-800 mb-4 flex items-center gap-3 text-xl">
+                            <span class="text-2xl">💡</span>
+                            さらに伸ばせる点
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex items-start gap-3">
+                                <span class="text-amber-500 text-xl mt-1">→</span>
+                                <div>
+                                    <p class="font-medium text-gray-800">積極性</p>
+                                    <p class="text-sm text-gray-600">もう少し具体的な提案があるとより良い</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <span class="text-amber-500 text-xl mt-1">→</span>
+                                <div>
+                                    <p class="font-medium text-gray-800">創造性</p>
+                                    <p class="text-sm text-gray-600">相手を楽しませる工夫の余地あり</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 今後のアドバイス -->
+            <div class="mb-8">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-12 h-12 bg-gradient-to-r from-violet-500 to-purple-500 rounded-full flex items-center justify-center text-2xl pulse-glow">🚀</div>
+                    <h2 class="text-2xl font-semibold text-gray-800">実践TIPs</h2>
+                </div>
+                <div class="bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 rounded-3xl p-8 hover-lift">
+                    <p class="text-gray-700 leading-relaxed mb-6 text-lg">
+                        このような思いやりの気持ちを持ち続けることで、相手との関係はより深いものになるでしょう。次回のデートでは：
+                    </p>
+                    <div class="flex justify-center">
+                        <div class="bg-white/80 rounded-2xl p-6 hover-lift sparkle max-w-md">
+                            <div class="flex items-center gap-3 mb-3">
+                                <span class="text-2xl">💝</span>
+                                <h4 class="font-semibold text-purple-800">事前の準備</h4>
+                            </div>
+                            <p class="text-gray-600">相手の好みや体調を考慮したプランを立てる</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- アクションボタン -->
+        <div class="flex justify-center reveal-animation" style="animation-delay: 0.4s;">
+            <button class="group bg-gradient-to-r from-pink-500 via-rose-500 to-red-500 hover:from-pink-600 hover:via-rose-600 hover:to-red-600 text-white font-semibold py-5 px-10 rounded-3xl transition-all duration-500 transform hover:scale-110 shadow-2xl pulse-glow">
+                <span class="flex items-center justify-center gap-3 text-lg">
+                    <span class="text-2xl group-hover:animate-bounce">💕</span>
+                    続ける
+                    <span class="text-xl group-hover:translate-x-1 transition-transform">→</span>
+                </span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 動的なハートアニメーション
+        function createFloatingHeart() {
+            const heart = document.createElement('div');
+            heart.className = 'heart';
+            heart.textContent = ['💖', '💕', '💝', '💗', '💓'][Math.floor(Math.random() * 5)];
+            heart.style.left = Math.random() * 100 + '%';
+            heart.style.animationDuration = (Math.random() * 3 + 4) + 's';
+            heart.style.fontSize = (Math.random() * 10 + 15) + 'px';
+            
+            document.querySelector('.floating-hearts').appendChild(heart);
+            
+            setTimeout(() => {
+                heart.remove();
+            }, 7000);
+        }
+
+        // 定期的にハートを生成
+        setInterval(createFloatingHeart, 2000);
+
+        // スクロール時のアニメーション
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animationPlayState = 'running';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal-animation').forEach(el => {
+            observer.observe(el);
+        });
+
+        // ボタンクリック時のエフェクト
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('click', function(e) {
+                const ripple = document.createElement('span');
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                ripple.style.cssText = `
+                    position: absolute;
+                    width: ${size}px;
+                    height: ${size}px;
+                    left: ${x}px;
+                    top: ${y}px;
+                    background: rgba(255,255,255,0.5);
+                    border-radius: 50%;
+                    transform: scale(0);
+                    animation: ripple 0.6s ease-out;
+                    pointer-events: none;
+                `;
+                
+                this.style.position = 'relative';
+                this.style.overflow = 'hidden';
+                this.appendChild(ripple);
+                
+                setTimeout(() => ripple.remove(), 600);
+            });
+        });
+
+        // リップルアニメーションのCSS
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ripple {
+                to {
+                    transform: scale(2);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 選択肢データ
+        const choicesData = {
+            0: {
+                title: 'あなたの恋愛スキル分析（選択A）',
+                rating: 'GOOD',
+                chartData: [
+                    { name: '思いやり', value: 95, color: '#ec4899', icon: '💝', description: '相手の気持ちを理解し、配慮する能力', details: ['疲れている相手に気づき、適切な提案ができています', '押し付けがましくない優しい声かけができています', '相手の立場に立って考える姿勢が素晴らしいです'] },
+                    { name: '観察力', value: 88, color: '#3b82f6', icon: '👁️', description: '相手の表情や仕草から状況を読み取る力', details: ['相手の疲れた様子を敏感に察知できています', '非言語的なサインを読み取る能力が高いです', 'さらに細かい変化にも気づけるようになると良いでしょう'] },
+                    { name: 'コミュニケーション', value: 82, color: '#10b981', icon: '🗣️', description: '相手と円滑に意思疎通を図る能力', details: ['優しい声かけで相手を気遣えています', '相手が答えやすい質問の仕方ができています', 'もう少し具体的な提案があるとより良いでしょう'] },
+                    { name: '面白さ', value: 90, color: '#8b5cf6', icon: '⚡', description: '相手を楽しませる力', details: ['相手の状態を見て適切なタイミングで行動できています', '休憩の提案は的確な判断でした', '状況を総合的に判断する力が優れています'] },
+                    { name: '積極性', value: 85, color: '#f59e0b', icon: '🎭', description: '積極的に行動する能力', details: ['相手の疲労感を理解し共感できています', '感情に寄り添う姿勢が見られます', 'より深い感情の変化も察知できるようになると良いでしょう'] }
+                ],
+                strengths: [
+                    { title: '相手への配慮', desc: '疲れている相手に気づき、適切な提案ができています' },
+                    { title: '自然なコミュニケーション', desc: '押し付けがましくない優しい声かけ' }
+                ],
+                improvements: [
+                    { title: '積極性', desc: 'もう少し具体的な提案があるとより良い' },
+                    { title: '創造性', desc: '相手を楽しませる工夫の余地あり' }
+                ]
+            },
+            1: {
+                title: '恋愛スキル分析（選択B）',
+                rating: 'GOOD',
+                chartData: [
+                    { name: '思いやり', value: 70, color: '#ec4899', icon: '💝', description: '相手の気持ちを理解し、配慮する能力', details: ['相手の疲れに気づいているものの、配慮が少し足りません', '自分のペースで進めがちな傾向があります', '相手の状況をもう少し考慮すると良いでしょう'] },
+                    { name: '観察力', value: 75, color: '#3b82f6', icon: '👁️', description: '相手の表情や仕草から状況を読み取る力', details: ['基本的な観察はできていますが、深い読み取りが不足', '表面的な変化には気づけています', 'より細かい感情の変化を察知する練習が必要です'] },
+                    { name: 'コミュニケーション', value: 92, color: '#10b981', icon: '🗣️', description: '相手と円滑に意思疎通を図る能力', details: ['積極的で魅力的な提案ができています', '会話を盛り上げる能力が高いです', '相手を楽しませる話術に長けています'] },
+                    { name: '面白さ', value: 65, color: '#8b5cf6', icon: '⚡', description: '相手を楽しませる力', details: ['状況判断がやや不適切な場合があります', '相手の状態よりも自分の計画を優先しがち', 'もう少し相手の立場を考慮した判断が必要です'] },
+                    { name: '積極性', value: 68, color: '#f59e0b', icon: '🎭', description: '積極的に行動する能力', details: ['相手の感情への理解が浅い傾向があります', '自分の感情を優先してしまうことがあります', '相手の気持ちにもっと寄り添う姿勢が大切です'] }
+                ],
+                strengths: [
+                    { title: '積極性', desc: '魅力的で創造的な提案ができています' },
+                    { title: 'コミュニケーション力', desc: '会話を盛り上げる能力が非常に高い' }
+                ],
+                improvements: [
+                    { title: '相手への配慮', desc: '相手の状況をもっと考慮する必要があります' },
+                    { title: '状況判断', desc: 'タイミングを見極める力を向上させましょう' }
+                ]
+            },
+            2: {
+                title: '恋愛スキル分析（選択C）',
+                rating: 'BAD',
+                chartData: [
+                    { name: '思いやり', value: 60, color: '#ec4899', icon: '💝', description: '相手の気持ちを理解し、配慮する能力', details: ['相手を気遣う気持ちはあるものの、行動に移せていません', '消極的すぎて相手に伝わりにくい状況です', 'もう少し積極的に気持ちを表現しましょう'] },
+                    { name: '観察力', value: 95, color: '#3b82f6', icon: '👁️', description: '相手の表情や仕草から状況を読み取る力', details: ['相手の変化を敏感に察知する能力が非常に高いです', '細かい表情の変化も見逃しません', '観察力は素晴らしいレベルに達しています'] },
+                    { name: 'コミュニケーション', value: 45, color: '#10b981', icon: '🗣️', description: '相手と円滑に意思疎通を図る能力', details: ['コミュニケーションが消極的すぎます', '相手との会話のきっかけを作るのが苦手', 'もっと積極的に話しかける練習が必要です'] },
+                    { name: '面白さ', value: 55, color: '#8b5cf6', icon: '⚡', description: '相手を楽しませる力', details: ['慎重すぎて行動のタイミングを逃しがちです', '正しい判断はできるが実行力が不足', 'もう少し勇気を持って行動することが大切'] },
+                    { name: '積極性', value: 88, color: '#f59e0b', icon: '🎭', description: '積極的に行動する能力', details: ['相手の感情を深く理解する能力があります', '共感力が非常に高く、相手の立場に立てます', '理解した感情を行動に移すことが課題です'] }
+                ],
+                strengths: [
+                    { title: '観察力', desc: '相手の変化を敏感に察知する能力が非常に高い' },
+                    { title: '積極性', desc: '相手の気持ちを深く理解し共感できる' }
+                ],
+                improvements: [
+                    { title: 'コミュニケーション', desc: 'もっと積極的に話しかける練習が必要' },
+                    { title: '行動力', desc: '理解した気持ちを行動に移すことが大切' }
+                ]
+            },
+            3: {
+                title: '恋愛スキル分析（選択D）',
+                rating: 'GOOD',
+                chartData: [
+                    { name: '思いやり', value: 85, color: '#ec4899', icon: '💝', description: '相手の気持ちを理解し、配慮する能力', details: ['相手の状況を理解し、適切な配慮ができています', '実用的な解決策を提示する思いやりがあります', '相手の立場に立った提案ができています'] },
+                    { name: '観察力', value: 80, color: '#3b82f6', icon: '👁️', description: '相手の表情や仕草から状況を読み取る力', details: ['相手の疲れに気づき、状況を把握できています', '基本的な観察力は十分備わっています', 'より細かい変化も察知できるようになると良い'] },
+                    { name: 'コミュニケーション', value: 88, color: '#10b981', icon: '🗣️', description: '相手と円滑に意思疎通を図る能力', details: ['具体的で分かりやすい提案ができています', '相手が理解しやすい伝え方ができています', 'コミュニケーション能力が高いレベルにあります'] },
+                    { name: '面白さ', value: 95, color: '#8b5cf6', icon: '⚡', description: '相手を楽しませる力', details: ['状況に応じた最適な解決策を提示できています', '実用的で現実的な判断ができています', '問題解決能力が非常に優れています'] },
+                    { name: '積極性', value: 78, color: '#f59e0b', icon: '🎭', description: '積極的に行動する能力', details: ['相手の感情を理解し、適切に対応できています', '実用的な解決を重視する傾向があります', 'もう少し感情面での共感を深めると良い'] }
+                ],
+                strengths: [
+                    { title: '問題解決力', desc: '具体的で実用的な解決策を提示できる' },
+                    { title: '面白さ', desc: '状況に応じた最適な行動を選択できる' }
+                ],
+                improvements: [
+                    { title: '感情的共感', desc: 'もう少し感情面での共感を深めると良い' },
+                    { title: '創造性', desc: 'より創造的なアプローチも取り入れてみましょう' }
+                ]
+            }
+        };
+
+        // レーダーチャートの描画
+        let chartData = [];
+        let currentChoice = 0;
+        
+        function drawRadarChart() {
+            const canvas = document.getElementById('radarChart');
+            if (!canvas) return;
+            
+            // キャンバスサイズを動的に調整
+            const container = canvas.parentElement;
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+            const size = Math.min(containerWidth, containerHeight, 500);
+            
+            canvas.width = size;
+            canvas.height = size;
+            
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(size * 0.32, 160); // モバイルでは小さく
+            
+            // 現在の選択肢のデータを使用
+            chartData = choicesData[currentChoice].chartData;
+            
+            const angleStep = (Math.PI * 2) / chartData.length;
+            
+            // キャンバスをクリア
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 背景のグリッド線を描画
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.lineWidth = 1;
+            
+            // 同心円を描画
+            for (let i = 1; i <= 5; i++) {
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, (radius / 5) * i, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // スコア表示
+                if (i === 5) {
+                    ctx.fillStyle = '#9ca3af';
+                    ctx.font = '12px "Noto Sans JP"';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('100', centerX, centerY - (radius / 5) * i - 8);
+                }
+            }
+
+            // 軸線を描画
+            for (let i = 0; i < chartData.length; i++) {
+                const angle = i * angleStep - Math.PI / 2;
+                const x = centerX + Math.cos(angle) * radius;
+                const y = centerY + Math.sin(angle) * radius;
+                
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            }
+
+            // データポイントを描画
+            ctx.fillStyle = 'rgba(236, 72, 153, 0.15)';
+            ctx.strokeStyle = '#ec4899';
+            ctx.lineWidth = 3;
+
+            ctx.beginPath();
+            for (let i = 0; i < chartData.length; i++) {
+                const angle = i * angleStep - Math.PI / 2;
+                const value = chartData[i].value / 100;
+                const x = centerX + Math.cos(angle) * radius * value;
+                const y = centerY + Math.sin(angle) * radius * value;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            
+            // データポイントに円を描画
+            for (let i = 0; i < chartData.length; i++) {
+                const angle = i * angleStep - Math.PI / 2;
+                const value = chartData[i].value / 100;
+                const x = centerX + Math.cos(angle) * radius * value;
+                const y = centerY + Math.sin(angle) * radius * value;
+                
+                ctx.fillStyle = chartData[i].color;
+                ctx.beginPath();
+                ctx.arc(x, y, 8, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 白い縁取り
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                
+                // スコア表示（点の外側に配置）
+                const scoreOffset = 25; // 点からの距離
+                const scoreX = centerX + Math.cos(angle) * (radius * value + scoreOffset);
+                const scoreY = centerY + Math.sin(angle) * (radius * value + scoreOffset);
+                
+                // 背景の白い円を描画
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                ctx.beginPath();
+                ctx.arc(scoreX, scoreY, 16, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 薄いグレーの縁取り
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                // スコアのテキスト
+                ctx.fillStyle = chartData[i].color;
+                ctx.font = 'bold 14px "Noto Sans JP"';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(chartData[i].value, scoreX, scoreY);
+            }
+            
+            // ラベルを描画
+            // モバイル対応のフォントサイズとラベル位置
+            const isMobile = size < 400;
+            const baseFontSize = isMobile ? 12 : 16;
+            const labelRadius = radius + (isMobile ? 40 : 60);
+            
+            for (let i = 0; i < chartData.length; i++) {
+                const angle = i * angleStep - Math.PI / 2;
+                const x = centerX + Math.cos(angle) * labelRadius;
+                const y = centerY + Math.sin(angle) * labelRadius;
+                
+                ctx.fillStyle = '#374151';
+                ctx.font = `bold ${baseFontSize}px "Noto Sans JP"`;
+                
+                // テキストの配置を調整
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                // モバイルでは長いテキストを改行
+                const text = chartData[i].name;
+                if (isMobile && text.length > 4) {
+                    // 長いテキストを2行に分割
+                    const words = text.split('');
+                    const midPoint = Math.ceil(words.length / 2);
+                    const line1 = words.slice(0, midPoint).join('');
+                    const line2 = words.slice(midPoint).join('');
+                    
+                    ctx.fillText(line1, x, y - 8);
+                    ctx.fillText(line2, x, y + 8);
+                } else {
+                    ctx.fillText(text, x, y);
+                }
+            }
+        }
+        
+
+        
+
+        
+        // 評価詳細の更新
+        function updateEvaluationDetails() {
+            const data = choicesData[currentChoice];
+            
+            // 優れている点を更新
+            const strengthsContainer = document.querySelector('.bg-gradient-to-br.from-emerald-50 .space-y-3');
+            if (strengthsContainer) {
+                strengthsContainer.innerHTML = data.strengths.map(strength => `
+                    <div class="flex items-start gap-3">
+                        <span class="text-green-500 text-xl mt-1">✓</span>
+                        <div>
+                            <p class="font-medium text-gray-800">${strength.title}</p>
+                            <p class="text-sm text-gray-600">${strength.desc}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // さらに伸ばせる点を更新
+            const improvementsContainer = document.querySelector('.bg-gradient-to-br.from-amber-50 .space-y-3');
+            if (improvementsContainer) {
+                improvementsContainer.innerHTML = data.improvements.map(improvement => `
+                    <div class="flex items-start gap-3">
+                        <span class="text-amber-500 text-xl mt-1">→</span>
+                        <div>
+                            <p class="font-medium text-gray-800">${improvement.title}</p>
+                            <p class="text-sm text-gray-600">${improvement.desc}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // 折りたたみ機能
+        function setupToggleDetails() {
+            const toggleButton = document.getElementById('toggleDetails');
+            const detailsContent = document.getElementById('detailsContent');
+            const toggleIcon = document.getElementById('toggleIcon');
+            
+            if (!toggleButton || !detailsContent || !toggleIcon) return;
+            
+            let isExpanded = true; // 初期状態を開いた状態に変更
+            
+            toggleButton.addEventListener('click', () => {
+                isExpanded = !isExpanded;
+
+                if (isExpanded) {
+                    detailsContent.style.maxHeight = detailsContent.scrollHeight + 'px';
+                    detailsContent.style.opacity = '1';
+                    toggleIcon.style.transform = 'rotate(180deg)';
+                    toggleButton.querySelector('span:last-child span:first-child').textContent = '詳細';
+                } else {
+                    detailsContent.style.maxHeight = '0';
+                    detailsContent.style.opacity = '0';
+                    toggleIcon.style.transform = 'rotate(0deg)';
+                    toggleButton.querySelector('span:last-child span:first-child').textContent = '詳細';
+                }
+            });
+        }
+
+        // ウィンドウリサイズ時の再描画
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                drawRadarChart();
+            }, 100);
+        });
+            
+
+
+        // 選択肢変更の処理
+        function selectChoice(choiceIndex) {
+            // 現在の選択を更新
+            currentChoice = choiceIndex;
+            
+            // すべての選択肢のスタイルをリセット
+            document.querySelectorAll('.choice-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // すべての「選択中」バッジを非表示
+            document.querySelectorAll('.choice-badge').forEach(badge => {
+                badge.style.display = 'none';
+            });
+            
+            // 選択された選択肢をアクティブに
+            const selectedBtn = document.querySelector(`[data-choice="${choiceIndex}"]`);
+            if (selectedBtn) {
+                selectedBtn.classList.add('active');
+            }
+            
+            // 選択された選択肢の「選択中」バッジを表示
+            const selectedBadge = document.getElementById(`badge-${choiceIndex}`);
+            if (selectedBadge) {
+                selectedBadge.style.display = 'inline-block';
+            }
+            
+            // 評価バッジを更新
+            updateRatingBadge(choiceIndex);
+            
+            // 評価セクションを更新
+            updateEvaluationSection(choiceIndex);
+            
+            // チャートを再描画
+            drawRadarChart();
+        }
+
+        function updateRatingBadge(choiceIndex) {
+            const data = choicesData[choiceIndex];
+            const ratingBadge = document.getElementById('rating-badge');
+            
+            if (ratingBadge) {
+                ratingBadge.textContent = data.rating;
+                
+                // 評価に応じて色を変更
+                ratingBadge.className = 'ml-4 px-4 py-2 rounded-full text-sm font-bold';
+                
+                switch(data.rating) {
+                    case 'BEST':
+                        ratingBadge.className += ' bg-green-500 text-white';
+                        break;
+                    case 'GOOD':
+                        ratingBadge.className += ' bg-blue-500 text-white';
+                        break;
+                    case 'BAD':
+                        ratingBadge.className += ' bg-red-500 text-white';
+                        break;
+                    default:
+                        ratingBadge.className += ' bg-gray-500 text-white';
+                }
+            }
+        }
+
+        function updateEvaluationSection(choiceIndex) {
+            const data = choicesData[choiceIndex];
+            
+            // 優れている点を更新
+            const strengthsContainer = document.querySelector('.bg-gradient-to-br.from-emerald-50 .space-y-3');
+            strengthsContainer.innerHTML = data.strengths.map(strength => `
+                <div class="flex items-start gap-3">
+                    <span class="text-green-500 text-xl mt-1">✓</span>
+                    <div>
+                        <p class="font-medium text-gray-800">${strength.title}</p>
+                        <p class="text-sm text-gray-600">${strength.desc}</p>
+                    </div>
+                </div>
+            `).join('');
+            
+            // 改善点を更新
+            const improvementsContainer = document.querySelector('.bg-gradient-to-br.from-amber-50 .space-y-3');
+            improvementsContainer.innerHTML = data.improvements.map(improvement => `
+                <div class="flex items-start gap-3">
+                    <span class="text-amber-500 text-xl mt-1">→</span>
+                    <div>
+                        <p class="font-medium text-gray-800">${improvement.title}</p>
+                        <p class="text-sm text-gray-600">${improvement.desc}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 初期化
+        function init() {
+            // レーダーチャートを描画
+            drawRadarChart();
+            
+            // 選択肢ボタンはクリック不可（選択Aが固定選択）
+            
+            // 折りたたみ機能を設定
+            setupToggleDetails();
+            
+            // ウィンドウリサイズ時にチャートを再描画
+            window.addEventListener('resize', () => {
+                setTimeout(drawRadarChart, 100);
+            });
+        }
+
+        // DOMが読み込まれたら初期化
+        document.addEventListener('DOMContentLoaded', init);
+
+        // ページ読み込み時にチャートを描画
+        setTimeout(() => {
+            drawRadarChart();
+            setupToggleDetails();
+        }, 500);
+    </script>
+
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97820559416cf526',t:'MTc1NjcwMDkwNi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'978b349355eb734b',t:'MTc1Njc5NzIxMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
