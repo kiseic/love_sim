@@ -3,12 +3,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/app/components/ui/Button';
-import { Card } from '@/app/components/ui/Card';
 import { useProblemStore } from '@/app/lib/store/problemStore';
 import { useProfileStore } from '@/app/lib/store/profileStore';
-import { getButtonText, getQuestionNumberText } from '@/app/lib/utils/problemNavigation';
+import { getButtonText } from '@/app/lib/utils/problemNavigation';
 
 type Label = 'BEST' | 'GOOD' | 'BAD';
+type ChoiceKey = 'a' | 'b' | 'c' | 'd';
 
 type SkillScores = {
   思いやり: number;
@@ -42,12 +42,6 @@ type EvaluateChoiceResponse = {
   };
 };
 
-function getBadgeColor(label: Label) {
-  if (label === 'BEST') return 'bg-green-500';
-  if (label === 'GOOD') return 'bg-blue-500';
-  return 'bg-red-500';
-}
-
 function getLabelMeta(label?: Label) {
   const L = label || 'BAD';
   switch (L) {
@@ -74,6 +68,13 @@ function getLabelMeta(label?: Label) {
       } as const;
   }
 }
+
+const choiceCircleColors: Record<ChoiceKey, string> = {
+  a: 'bg-sky-500',
+  b: 'bg-violet-500',
+  c: 'bg-emerald-500',
+  d: 'bg-pink-500',
+};
 
 function RadarChart({ scores }: { scores: SkillScores }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -231,9 +232,9 @@ export default function SimulationExplanationPage() {
 
   const selectedAnswerText = getSelectedAnswer(progress.currentQuestionIndex) || '';
 
-  const selectedChoiceKey: 'a' | 'b' | 'c' | 'd' | null = useMemo(() => {
+  const selectedChoiceKey: ChoiceKey | null = useMemo(() => {
     if (!currentProblem?.choices) return null;
-    const entries: Array<['a'|'b'|'c'|'d', string]> = [
+    const entries: Array<[ChoiceKey, string]> = [
       ['a', currentProblem.choices.a],
       ['b', currentProblem.choices.b],
       ['c', currentProblem.choices.c],
@@ -242,6 +243,14 @@ export default function SimulationExplanationPage() {
     const found = entries.find(([, text]) => String(text) === String(selectedAnswerText));
     return found ? found[0] : null;
   }, [currentProblem, selectedAnswerText]);
+
+  const selectedExplanation = selectedChoiceKey ? evaluation?.explanations?.[selectedChoiceKey] : undefined;
+  const selectedLabelMeta = getLabelMeta(selectedExplanation?.label);
+  const selectedLabelText = selectedExplanation?.label || 'GOOD';
+  const otherChoiceKeys = useMemo<ChoiceKey[]>(() => {
+    const keys: ChoiceKey[] = ['a', 'b', 'c', 'd'];
+    return selectedChoiceKey ? keys.filter((key) => key !== selectedChoiceKey) : keys;
+  }, [selectedChoiceKey]);
 
   // 画面で表示する評価の対象（初期はユーザー選択、なければ 'a'）
   const [activeKey, setActiveKey] = useState<'a' | 'b' | 'c' | 'd'>('a');
@@ -399,35 +408,38 @@ export default function SimulationExplanationPage() {
               {/* あなたの選択肢（一番上に表示） */}
               {selectedChoiceKey && currentProblem?.choices && (
                 <div className="mb-6">
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
-                    <div className="flex items-center justify-center gap-3 mb-4">
-                      <span className="text-2xl">📊</span>
-                      <span className="text-lg font-semibold text-gray-800">あなたの選択は</span>
-                      <div className={`px-4 py-1.5 rounded-full font-bold text-white ${
-                        evaluation?.explanations?.[selectedChoiceKey as keyof typeof evaluation.explanations]?.label === 'BEST' ? 'bg-yellow-400' :
-                        evaluation?.explanations?.[selectedChoiceKey as keyof typeof evaluation.explanations]?.label === 'GOOD' ? 'bg-green-500' :
-                        evaluation?.explanations?.[selectedChoiceKey as keyof typeof evaluation.explanations]?.label === 'BAD' ? 'bg-red-500' :
-                        'bg-green-500'
-                      }`}>
-                        {evaluation?.explanations?.[selectedChoiceKey as keyof typeof evaluation.explanations]?.label || 'GOOD'}
+                  <div className="rounded-2xl border border-blue-100/80 bg-white/95 p-5 shadow-xl backdrop-blur-sm">
+                    <div className="flex flex-col gap-2 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
+                      <div className="flex items-center justify-center gap-3 text-gray-800">
+                        <span className="text-2xl">📊</span>
+                        <p className="text-lg font-semibold">あなたの選択</p>
                       </div>
-                      <span className="text-lg font-semibold text-gray-800">です</span>
+                      <div className="flex items-center justify-center gap-2 text-sm font-semibold text-gray-600">
+                        <span>評価</span>
+                        <span className={`px-4 py-1.5 rounded-full ${selectedLabelMeta.badge}`}>
+                          {selectedLabelText}
+                        </span>
+                        <span>です</span>
+                      </div>
                     </div>
-                    
-                    {/* あなたの選択肢をクリック可能なボタンとして表示 */}
-                    <button 
+                    <button
                       type="button"
                       onClick={() => setActiveKey(selectedChoiceKey)}
-                      className={`choice-btn w-full text-left p-4 rounded-xl border transition-colors ${
-                        activeKey === selectedChoiceKey ? 'border-4 border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                      className={`mt-4 w-full rounded-2xl border-2 p-4 text-left transition-all ${
+                        activeKey === selectedChoiceKey
+                          ? 'border-blue-400 bg-blue-50/80 shadow-lg'
+                          : 'border-transparent bg-white shadow-sm hover:border-blue-100'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-6 h-6 ${['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-pink-500'][['a','b','c','d'].indexOf(selectedChoiceKey)]} rounded-full flex items-center justify-center text-white font-bold text-xs`}>
-                          {selectedChoiceKey.toUpperCase()}
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <div className="flex items-center gap-3">
+                          <div className={`h-10 w-10 rounded-full text-white text-base font-bold flex items-center justify-center ${choiceCircleColors[selectedChoiceKey]}`}>
+                            {selectedChoiceKey.toUpperCase()}
+                          </div>
+                          <p className="text-base font-medium leading-relaxed text-gray-900 whitespace-pre-line break-words">
+                            {currentProblem.choices[selectedChoiceKey]}
+                          </p>
                         </div>
-                        <span className="text-sm font-medium flex-1">{getSelectedAnswer(progress.currentQuestionIndex)}</span>
-
                       </div>
                     </button>
                   </div>
@@ -435,44 +447,41 @@ export default function SimulationExplanationPage() {
               )}
 
               {/* その他の選択肢リスト（自分が選択した選択肢を除外） */}
-              <div className="space-y-2">
-                {currentProblem?.choices && (['a','b','c','d'] as const)
-                  .filter(key => key !== selectedChoiceKey) // 自分が選択した選択肢を除外
-                  .map((key, index) => {
-                    const choiceText = currentProblem.choices[key];
-                    const choiceLabel = evaluation?.explanations?.[key]?.label || 'GOOD';
-                    const choiceColors = ['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-pink-500'];
-                    const originalIndex = ['a','b','c','d'].indexOf(key); // 元のインデックスを取得
-                    const labelColors = {
-                      'BEST': 'bg-yellow-400',
-                      'GOOD': 'bg-green-500', 
-                      'BAD': 'bg-red-500'
-                    };
-                    
-                    return (
-                      <button 
-                        key={key} 
-                        type="button"
-                        onClick={() => setActiveKey(key)}
-                        className={`choice-btn w-full text-left p-4 rounded-xl border transition-colors ${
-                          activeKey === key ? 'border-4 border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
+              <div className="space-y-3">
+                {currentProblem?.choices && otherChoiceKeys.map((key) => {
+                  const choiceText = currentProblem.choices?.[key];
+                  if (!choiceText) return null;
+                  const choiceLabel = evaluation?.explanations?.[key]?.label || 'GOOD';
+                  const choiceMeta = getLabelMeta(choiceLabel);
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setActiveKey(key)}
+                      className={`w-full rounded-2xl border-2 p-4 text-left transition-all ${
+                        activeKey === key
+                          ? 'border-purple-400 bg-white shadow-xl'
+                          : 'border-transparent bg-white/80 shadow-sm hover:border-purple-100'
+                      }`}
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                         <div className="flex items-center gap-3">
-                          <div className={`w-6 h-6 ${choiceColors[originalIndex]} rounded-full flex items-center justify-center text-white font-bold text-xs`}>
+                          <div className={`h-9 w-9 rounded-full text-white text-xs font-bold flex items-center justify-center ${choiceCircleColors[key]}`}>
                             {key.toUpperCase()}
                           </div>
-                          <span className="text-sm font-medium flex-1">{choiceText}</span>
-                          <div className="flex items-center gap-2">
-                            <div className={`px-3 py-1 rounded-full text-xs font-bold text-white ${labelColors[choiceLabel as keyof typeof labelColors] || 'bg-gray-500'}`}>
-                              {choiceLabel}
-                            </div>
-
-                          </div>
+                          <span className="text-sm font-medium leading-relaxed text-gray-800 whitespace-pre-line break-words">
+                            {choiceText}
+                          </span>
                         </div>
-                      </button>
-                    );
-                  })}
+                        <div className="flex items-center gap-2 sm:ml-auto">
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${choiceMeta.badge}`}>
+                            {choiceLabel}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
               <p className="mt-3 text-xs text-gray-500 text-center">選択肢をクリックすると、その選択肢の評価が表示されます</p>
 

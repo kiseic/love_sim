@@ -1,429 +1,166 @@
-# 🎓 2025年夏季インターンシップ GMOメディア「コエテコStudyコース」へようこそ！
+# Love Simulation
 
-## 📌 プロジェクト概要
+Love Simulation は、恋愛シミュレーションを題材にしたインタラクティブな学習体験を提供する Next.js 製アプリケーションです。ユーザーは自分と相手のプロフィールを入力し、VoltAgent を経由した大規模言語モデル（LLM）が生成する分岐シナリオを進めながら、選択肢ごとの解説と総合診断を得られます。本プロダクトは React 19 と TypeScript を基盤とし、Tailwind CSS による UI 表現と Zustand による状態管理を組み合わせて構築されています。
 
-このプロジェクトは、GMOメディアが運営する「コエテコStudy」で実際に稼働している問題AIジェネレーター機能を基に作成された、インターンシップ用の教育プロジェクトです。
+## プロダクト概要
 
-### インターンシップの目的
+- プロフィール入力およびプリセット機能で、恋愛シナリオの初期条件を簡単に設定できます。
+- `POST /api/generate` が最初のシナリオと四択問題を生成し、選択結果は `POST /api/evaluate-choice` によってスコアリングされます。
+- 進行中の選択は `POST /api/next-situation` を通じて次のシチュエーションに反映され、DALL·E 3 による情景画像もあわせて生成されます。
+- シナリオを完了すると `POST /api/result` が総合レポートを作成し、レーダーチャートやタイプ診断を表示します。
+- LLM 連携は `@voltagent/core` の InMemoryStorage を用いた `QuizAgent` が担い、会話コンテキストを維持します。
 
-1. **実践的な開発経験**: 本番稼働を意識した技術スタックでの開発
-2. **創造性の発揮**: 既存機能への創意工夫による価値向上
-3. **チーム開発の体験**: コードレビューやCI/CDを通じた協働作業
+## アーキテクチャ
 
-### 期待される成果
+1. ユーザーはトップページ（`/`）でプロフィールを入力し、Zod によるバリデーションを通過します。
+2. `LoveSimulationForm` がプロフィール情報を `useProfileStore` に保存し、問題数に応じて `useProblemStore` を初期化します。
+3. API ルートが OpenAI API（gpt-5 系モデルおよび DALL·E 3）を呼び出し、`voltagent.ts` で定義された `QuizAgent` がメモリを保持しながら応答を生成します。
+4. フロントエンドはセッション単位のメモリとして `sessionStorage` を併用し、直近の生成結果と選択肢評価をキャッシュします。
+5. `/simulation` で問題を解き、`/simulation-explanation` で各選択肢の評価とスコアを確認し、最終的に `/simulation-result` で診断結果を閲覧します。
+6. `app/ops` には EventSource ベースのオペレーションビューを配置し、SSE を実装することで `agentEventBus` のイベントを監視できる設計になっています（バックエンド実装は別途追加が必要です）。
 
-- 既存機能の改善・拡張
-- 新機能の企画・実装
-- コード品質の向上
-- ユーザー体験の向上
+## 主な機能
 
-## 🚀 クイックスタート
+- **プロフィールプリセット**: `app/lib/constants/presets.ts` に定義された 10 種類のシナリオテンプレートから即時に条件を読み込めます。
+- **問題生成と評価**: `app/api/generate/route.ts` と `app/api/evaluate-choice/route.ts` がそれぞれ初期問題と選択肢評価を担当します。評価結果は JSON 形式のスコアと改善提案を含みます。
+- **次シチュエーション生成**: `app/api/next-situation/route.ts` は直前の選択内容を踏まえたシナリオ更新と画像生成を行います。生成された画像は Base64 データ URI として返却され、メタデータの `tags` に格納されます。
+- **最終結果レポート**: `app/api/result/route.ts` が総合スコア、恋愛タイプ、相性アドバイスを生成します。フロントエンドでは Canvas を用いたレーダーチャートで視覚化します。
+- **UI コンポーネント**: `app/components/ui` 以下にボタン、カード、モーダル、プリセットカード、アバターアップロードなどの再利用可能なコンポーネントを配置しています。
+- **学習リソース**: `DOCS/` ディレクトリに初期設計資料（HTML モックアップと解説）が保存されています。UI の再現や遷移確認に活用できます。
 
-### 1. 環境構築
+## 開発環境のセットアップ
 
-```bash
-# リポジトリのフォーク（GitHubで実施）
-# フォークしたリポジトリをクローン
-git clone https://github.com/[your-username]/summer-internship-2025-sandbox
-cd summer-internship-2025-sandbox
-
-# 依存関係のインストール
-npm install
-
-# 環境変数の設定
-cp .env.example .env.local
-# .env.localを編集してOPENAI_API_KEYを設定（インターン開始時に配布）
-```
-
-### 2. 開発サーバーの起動
-
-```bash
-npm run dev
-# http://localhost:3000 でアプリケーションが起動します
-```
-
-## 🏗️ 開発フロー
-
-### ブランチ戦略
-
-```bash
-# 新機能の開発
-git checkout -b feature/your-feature-name
-
-# バグ修正
-git checkout -b fix/bug-description
-
-# リファクタリング
-git checkout -b refactor/target-description
-```
-
-### Pull Request (PR) の作成
-
-1. **ブランチで開発**
+1. リポジトリをクローンします。
    ```bash
-   git add .
-   git commit -m "feat: 新機能の説明"
-   git push origin feature/your-feature-name
+   git clone <repository-url>
+   cd love_sim
    ```
+2. 依存関係をインストールします。
+   ```bash
+   npm install
+   ```
+3. 環境変数を設定します。`.env.example` を参考に `.env.local` を作成し、OpenAI の API キーを登録してください。
+   ```bash
+   cp .env.example .env.local
+   # OPENAI_API_KEY=sk-... を設定
+   ```
+   `app/lib/ai/openai.ts` は起動時に `OPENAI_API_KEY` を必須とするため、未設定のままではサーバーがエラーで停止します。
+4. 開発サーバーを起動します。
+   ```bash
+   npm run dev
+   ```
+   Turbopack が有効な Next.js 開発サーバーが `http://localhost:3000` で立ち上がります。
 
-2. **GitHubでPRを作成**
-   - タイトル: `[種別] 簡潔な説明`
-   - 本文には以下を含める：
-     - 変更内容の詳細
-     - 動作確認の方法
-     - スクリーンショット（UI変更の場合）
+## 利用可能なスクリプト
 
-3. **自動デプロイ**
-   - PR作成時: プレビュー環境が自動作成されます
-   - mainマージ時: 本番環境に自動デプロイされます
+| コマンド | 説明 |
+| -------- | ---- |
+| `npm run dev` | 開発サーバーを起動します。|
+| `npm run build` | 本番ビルドを実行します。|
+| `npm run start` | ビルド済み成果物を起動します。|
+| `npm run lint` | ESLint による静的解析を実行します。|
 
-### コミットメッセージ規約
-
-```
-feat: 新機能の追加
-fix: バグ修正
-docs: ドキュメントの更新
-style: フォーマット修正（機能に影響なし）
-refactor: リファクタリング
-test: テストの追加・修正
-chore: ビルドプロセスやツールの変更
-```
-
-## 🛠️ 技術仕様
-
-### アーキテクチャ概要
-
-このアプリケーションは、Next.jsのフルスタック機能を活用した構成になっています。
-
-```
-【ユーザー画面】
-    ↓
-[1] フロントエンド (React + TypeScript)
-    - 問題生成フォーム
-    - 問題表示・編集画面
-    - 履歴管理
-    ↓
-[2] 状態管理 (Zustand)
-    - 生成された問題の保存
-    - UI状態の管理
-    - 履歴データの管理
-    ↓
-[3] APIルート (Next.js API Routes)
-    - リクエストの受付
-    - バリデーション (Zod)
-    - エラーハンドリング
-    ↓
-[4] AI連携 (OpenAI API)
-    - プロンプトの構築
-    - 問題の生成
-    - レスポンスの整形
-    ↓
-【生成された問題を表示】
-```
-
-### システムの流れ
-
-1. **ユーザー入力** → フォームで問題の条件を設定
-2. **データ検証** → Zodでバリデーション
-3. **API通信** → Next.jsのAPIルートへPOSTリクエスト
-4. **AI処理** → OpenAI APIで問題生成
-5. **状態更新** → Zustandストアに保存
-6. **画面更新** → Reactコンポーネントが再レンダリング
-
-### 主要コンポーネント
-
-#### 1. ProblemGeneratorForm (`app/components/problem-generator/ProblemGeneratorForm.tsx`)
-- **役割**: 問題生成のパラメータ入力フォーム
-- **技術**: React Hook Form + Zod によるバリデーション
-- **改善ポイント**: より直感的なUI、リアルタイムプレビュー機能
-
-#### 2. ProblemDisplay (`app/components/problem-display/`)
-- **役割**: 生成された問題の表示・編集
-- **技術**: React コンポーネント
-- **改善ポイント**: リッチテキストエディタ、数式レンダリング
-
-#### 3. API Route (`app/api/generate/route.ts`)
-- **役割**: OpenAI APIとの通信、問題生成ロジック
-- **技術**: Next.js Route Handlers
-- **改善ポイント**: レート制限、エラーハンドリング強化
-
-#### 4. Store (`app/lib/store/problemStore.ts`)
-- **役割**: アプリケーション全体の状態管理
-- **技術**: Zustand
-- **改善ポイント**: 永続化、履歴の詳細管理
-
-### 技術スタックの詳細
-
-| カテゴリ | 技術 | 用途 |
-|---------|------|------|
-| **フレームワーク** | Next.js 15.4 | フルスタックWebアプリケーション |
-| **言語** | TypeScript | 型安全な開発 |
-| **スタイリング** | Tailwind CSS | ユーティリティファーストCSS |
-| **状態管理** | Zustand | シンプルで軽量な状態管理 |
-| **フォーム** | React Hook Form + Zod | フォーム管理とバリデーション |
-| **AI** | OpenAI API | 問題生成エンジン |
-| **デプロイ** | AWS Amplify | CI/CD統合デプロイメント |
-
-## 💡 改善アイデア集
-
-### 🎯 機能拡張のアイデア
-
-#### 1. 学習管理機能
-```typescript
-// 例: 学習進捗トラッキング
-interface LearningProgress {
-  userId: string;
-  problemsSolved: number;
-  correctRate: number;
-  weakSubjects: Subject[];
-}
-```
-- ユーザーごとの学習履歴
-- 正答率の記録
-- 苦手分野の分析
-
-#### 2. 問題のカスタマイズ機能
-- テンプレートベースの問題生成
-- 画像やグラフを含む問題
-- インタラクティブな問題（ドラッグ&ドロップなど）
-
-#### 3. AIの活用拡張
-- 生成された問題の難易度自動判定
-- ユーザーの理解度に応じた問題推薦
-- 解答の自動採点機能
-
-#### 4. コラボレーション機能
-- 問題の共有機能
-- 先生と生徒のインタラクション
-- クラスルーム機能
-
-### 🎨 UI/UX改善のアイデア
-
-#### 1. レスポンシブデザインの強化
-```css
-/* モバイルファーストのアプローチ */
-@media (max-width: 768px) {
-  /* モバイル向けの最適化 */
-}
-```
-
-#### 2. アクセシビリティ向上
-- キーボードナビゲーション
-- スクリーンリーダー対応
-- ハイコントラストモード
-
-#### 3. アニメーション・トランジション
-- 問題生成時のローディングアニメーション
-- スムーズなページ遷移
-- マイクロインタラクション
-
-#### 4. テーマ機能
-- ダークモード対応
-- カスタムテーマ
-- 色覚異常対応
-
-### ⚡ パフォーマンス最適化
-
-#### 1. 画像・アセット最適化
-```typescript
-// Next.js Image コンポーネントの活用
-import Image from 'next/image';
-```
-
-#### 2. コード分割
-```typescript
-// 動的インポートの活用
-const HeavyComponent = dynamic(() => import('./HeavyComponent'), {
-  loading: () => <Spinner />,
-});
-```
-
-#### 3. キャッシング戦略
-- React Query / SWRの導入
-- Service Workerの活用
-- CDNの最適化
-
-### 🔒 セキュリティ強化
-
-#### 1. 入力値検証の強化
-```typescript
-// より厳密なバリデーション
-const sanitizeInput = (input: string): string => {
-  // XSS対策
-  return DOMPurify.sanitize(input);
-};
-```
-
-#### 2. レート制限
-```typescript
-// API Routeでのレート制限実装
-import rateLimit from 'express-rate-limit';
-```
-
-#### 3. 認証・認可
-- NextAuth.jsの導入
-- ユーザー権限管理
-- セッション管理
-
-## 📚 開発ガイドライン
-
-### コーディング規約
-
-#### TypeScript
-```typescript
-// 良い例: 明示的な型定義
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
-
-// 避けるべき: any型の使用
-const data: any = fetchData(); // ❌
-```
-
-#### React コンポーネント
-```typescript
-// 良い例: 関数コンポーネント + TypeScript
-interface ButtonProps {
-  onClick: () => void;
-  children: React.ReactNode;
-  variant?: 'primary' | 'secondary';
-}
-
-const Button: React.FC<ButtonProps> = ({ onClick, children, variant = 'primary' }) => {
-  return (
-    <button onClick={onClick} className={`btn-${variant}`}>
-      {children}
-    </button>
-  );
-};
-```
-
-### フォルダ構造のベストプラクティス
+## ディレクトリ構成（主要部分）
 
 ```
 app/
-├── components/          # UIコンポーネント
-│   ├── common/         # 共通コンポーネント
-│   ├── features/       # 機能別コンポーネント
-│   └── layouts/        # レイアウトコンポーネント
-├── hooks/              # カスタムフック
-├── lib/                # ユーティリティ・ライブラリ
-├── services/           # API通信ロジック
-└── types/              # TypeScript型定義
+  page.tsx                  # トップページ（プロフィール入力フォーム）
+  simulation/               # シミュレーション進行ページ
+  simulation-explanation/   # 選択肢評価表示ページ
+  simulation-result/        # 最終結果ページ
+  ops/                      # オペレーションダッシュボード
+  api/
+    generate/route.ts       # 初期シナリオ生成 API
+    next-situation/route.ts # 次シチュエーション生成 API
+    evaluate-choice/route.ts# 選択肢評価 API
+    result/route.ts         # 総合結果生成 API
+  components/
+    love-simulation/        # LoveSimulationForm など入力フォーム群
+    simulation-display/     # シナリオ表示と選択 UI
+    simulation-result/      # 結果画面コンポーネント
+    ui/                     # 共通 UI コンポーネント
+  lib/
+    ai/                     # OpenAI クライアントとプロンプト
+    constants/              # プリセット定義
+    store/                  # Zustand ストア
+    types/                  # 型定義
+    voltagent.ts            # VoltAgent と QuizAgent の設定
 ```
 
-## 📖 学習リソース
+## AI エージェントとメモリ管理
 
-### Next.js
-- [Next.js 公式ドキュメント](https://nextjs.org/docs)
-- [Next.js Learn コース](https://nextjs.org/learn)
-- [App Router 完全ガイド](https://nextjs.org/docs/app)
+- `app/lib/voltagent.ts` で `QuizAgent` を生成し、`InMemoryStorage` を利用して会話履歴を保持します。保存上限は 50 エントリです。
+- `VoltAgent` によってエージェントをカタログ化し、将来的に複数エージェントを切り替える余地があります。
+- VoltAgent の In-Memory Storage や Operation Context の詳細は以下の公式ドキュメントを参照してください。
+  - In-Memory Storage: https://voltagent.dev/docs/agents/memory/in-memory/
+  - Memory 概要: https://voltagent.dev/docs/agents/memory/overview/
+  - Operation Context: https://voltagent.dev/docs/agents/context/
+  - Next.js 連携: https://voltagent.dev/docs/integrations/nextjs/
+  - チュートリアル: https://voltagent.dev/tutorial/memory/
 
-### TypeScript
-- [TypeScript ハンドブック](https://www.typescriptlang.org/docs/handbook/intro.html)
-- [TypeScript Deep Dive 日本語版](https://typescript-jp.gitbook.io/deep-dive/)
+## 状態管理と永続化
 
-### React
-- [React 公式ドキュメント](https://react.dev/)
-- [React Hooks 詳解](https://react.dev/reference/react)
+- `useProfileStore` はプロファイル入力と生成状態（`isGenerating`）を保持し、Zustand の `persist` ミドルウェアでブラウザストレージに保存します。
+- `useProblemStore` は現在の問題番号、合計問題数、フェーズ（`problem` / `explanation` / `completed`）と選択履歴を扱います。
+- API 応答の一部は `sessionStorage` に保存し、ページ遷移間で共有しています（`generateResponse` と `evaluateResponse`）。
 
-### AI/機械学習
-- [OpenAI API ドキュメント](https://platform.openai.com/docs)
-- [プロンプトエンジニアリング ガイド](https://www.promptingguide.ai/jp)
+## 主要な API 仕様
 
-### その他の推奨リソース
-- [MDN Web Docs](https://developer.mozilla.org/ja/)
-- [web.dev](https://web.dev/)
-- [CSS Tricks](https://css-tricks.com/)
+### `/api/generate`
+- **入力**: プロフィール情報（自分・相手・関係性・目標・質問数）。
+- **処理**: VoltAgent 経由で LLM を呼び出し、四択問題リストを生成します。ネットワーク障害やタイムアウトに備えたエラーハンドリングを実装しています。
+- **出力**: `problems: Problem[]` を含む JSON。各 `Problem` は `choices`、`question`、`createdAt` などを持ちます。
 
-## 🐛 トラブルシューティング
+### `/api/evaluate-choice`
+- **入力**: 問題文、選択肢、選択した選択肢、問題種別、追加コンテキスト。
+- **処理**: 選択肢ごとの評価ラベル（BEST / GOOD / BAD）、スコア、強み・改善点・ヒントを生成します。
+- **出力**: `explanations` オブジェクトを含む JSON。ラベル別のメタ情報を返却します。
 
-### よくある問題と解決方法
+### `/api/next-situation`
+- **入力**: 直前の問題文、選択肢、選択した選択肢。
+- **処理**: 次の問題文と選択肢の生成に加え、DALL·E 3 で関連画像を生成します。画像データは Base64 形式または URL として返却されます。
+- **出力**: `problems: Problem[]`。画像が生成された場合は `metadata.tags` に `image:data-uri` 形式で格納されます。
 
-#### 1. 環境変数が読み込まれない
-```bash
-# .env.localファイルの確認
-cat .env.local
+### `/api/result`
+- **入力**: プロフィール、全問題、ユーザーの選択履歴。
+- **処理**: 恋愛スキルの数値化、タイプ分類、相性診断、アドバイスを生成します。
+- **出力**: `scores`、`loveType`、`growthTips`、`compatibility` を含む JSON。フロントエンドが結果画面に反映します。
 
-# 開発サーバーの再起動
-npm run dev
-```
+## フロントエンドのページ構成
 
-#### 2. TypeScriptエラー
-```bash
-# 型定義の更新
-npm install --save-dev @types/[package-name]
+- `/`: `LoveSimulationForm` がプロフィール入力、プリセット選択、プレビュー、開始操作を受け付けます。
+- `/simulation`: `SimulationDisplay` が四択の選択 UI と進行バーを表示します。回答ごとに `useProblemStore` がフェーズを更新します。
+- `/simulation-explanation`: Canvas ベースのレーダーチャートと、ラベル別の強み・改善点・ヒントを提示します。
+- `/simulation-result`: `SimulationResult` が最終スコア、関係の変化、シェア機能（Twitter、LINE、クリップボード）、再プレイ導線を提供します。
+- `/ops`: SSE によりエージェントイベントをモニタリングするための管理画面です。`/api/ops/events` エンドポイントを実装することで `agentEventBus` のスナップショットとリアルタイムイベントを表示できます。
 
-# TypeScriptの設定確認
-npx tsc --noEmit
-```
+## デザインとスタイリング
 
-#### 3. ビルドエラー
-```bash
-# キャッシュのクリア
-rm -rf .next
-npm run build
-```
+- Tailwind CSS を採用し、ユーティリティクラス中心にスタイルを定義しています。
+- `SimulationDisplay` ではカスタムアニメーション（浮遊アニメーション、ハートビート）を適用しています。
+- `SimulationResult` は動画背景や桜の花びらアニメーションを備え、シェアボタンは各プラットフォーム固有のディープリンクに対応します。
+- UI テキストは `app/components/` 以下で集中管理しており、カスタマイズは各コンポーネント単位で行えます。
 
-### デバッグのコツ
+## 開発フローの推奨事項
 
-#### 1. console.logの活用
-```typescript
-// 開発環境でのみログ出力
-if (process.env.NODE_ENV === 'development') {
-  console.log('Debug info:', data);
-}
-```
+- ブランチは `feature/<説明>`、`fix/<説明>` など用途別に作成してください。
+- 主要ページや API に変更を加えた場合は `npm run lint` を実行し、型エラーと静的解析の警告を解消してください。
+- OpenAI 連携部をモック化する場合は API ルートにスタブレスポンスを追加し、`process.env.OPENAI_API_KEY` の検証を条件分岐でスキップする方法が有効です。
 
-#### 2. React Developer Tools
-- Chrome/Firefox拡張機能をインストール
-- コンポーネントツリーの確認
-- Props/Stateの検査
+## トラブルシューティング
 
-#### 3. Network タブの活用
-- API通信の確認
-- レスポンスの検証
-- パフォーマンス分析
+- **OpenAI API キーが未設定**: 開発サーバー起動時に `OPENAI_API_KEY is not set` エラーが発生します。`.env.local` を再確認してください。
+- **LLM への接続失敗**: API レスポンスが 503 を返し、「LLM サービスに接続できません」と表示された場合はネットワーク設定とプロキシ設定を確認してください。
+- **選択肢評価が JSON 解析エラーになる**: LLM 応答が JSON 形式でない場合、502 エラーが発生します。プロンプト調整または再試行を行ってください。
+- **画像生成が失敗する**: `next-situation` の画像生成エラーは警告ログに記録されます。画像なしでもシミュレーションは継続します。
 
-## 🎯 インターン期間中の目標
+## 参考資料
 
-### Day 1-2: 理解とセットアップ
-- [ ] プロジェクト構造の理解
-- [ ] 開発環境の構築
-- [ ] 既存機能の動作確認
+- In-Memory Storage: https://voltagent.dev/docs/agents/memory/in-memory/
+- Memory 概要: https://voltagent.dev/docs/agents/memory/overview/
+- Operation Context: https://voltagent.dev/docs/agents/context/
+- Next.js 連携: https://voltagent.dev/docs/integrations/nextjs/
+- チュートリアル: https://voltagent.dev/tutorial/memory/
+- UI モック: `DOCS/document.html`, `DOCS/result.html`
 
-### Day 3-5: 機能開発
-- [ ] 改善案の企画
-- [ ] 実装開始
-- [ ] テストの作成
-
-### Day 6-10: 仕上げとプレゼンテーション
-- [ ] コードのリファクタリング
-- [ ] ドキュメントの整備
-- [ ] 成果発表の準備
-
-## 🤝 サポート
-
-### 質問・相談
-
-- **Slack**: 専用SlackチャンネルでいつでもメンションOKです。
-- **ランチ会など**: オフラインで交流できる方は是非！働き方やキャリアなど、何でも遠慮なく質問してください！
-
-### コードレビュー
-
-- PRには必ずレビュアーを設定
-- フィードバックは建設的に
-- 学びの機会として活用
-
-## 📝 最後に
-
-このインターンシップを通じて、皆さんのプロダクト開発経験に少しでも貢献できれば嬉しいです。疑問があれば何でもメンターに質問してください。
-そして、ぜひあなたのアイデアをコエテコStudyに採用させてください！
-
-**Good luck and happy coding! 🚀**
-
----
-
-*GMOメディア株式会社 サービス開発部 メンター一同*
+本 README は本プロダクト単体で開発・運用が可能になるよう、依存関係、システム構成、API 仕様、運用上の注意点を網羅的に記載しています。
